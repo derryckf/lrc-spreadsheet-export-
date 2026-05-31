@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace App\Services;
 
+use PDO;
+
 /**
  * Orchestrates per-member processing for an event.
  *
@@ -73,7 +75,7 @@ class MemberProcessor
         $eventDate = new \DateTime($event['eventDate']);
         $targetDistance = (float)$event['distance'];
 
-        $this->logger()->info("Processing event {$eventId} ({$event['eventDate']}, {$targetDistance}km) for {$x} history events");
+        $this->logger->info("Processing event {$eventId} ({$event['eventDate']}, {$targetDistance}km) for {$x} history events");
 
         // Load all able entries
         $entries = $this->loadEntries($eventId);
@@ -83,44 +85,44 @@ class MemberProcessor
             $memberId = (int)$entry['member_id'];
             $memberLabel = "{$entry['firstName']} {$entry['lastName']}";
 
-            $this->logger()->info("{$memberLabel} (mem={$memberId}):");
+            $this->logger->info("{$memberLabel} (mem={$memberId}):");
 
             // Days since last event
             $daysSince = $this->winCalc->daysSinceLastEvent($memberId, $eventDate);
-            $this->logger()->info("  daysSince={$daysSince}");
+            $this->logger->info("  daysSince={$daysSince}");
 
             // Runs since last win
             $runsSinceLastWin = $this->winCalc->runsSinceLastWin($memberId, $eventDate);
-            $this->logger()->info("  lastWin={$runsSinceLastWin}");
+            $this->logger->info("  lastWin={$runsSinceLastWin}");
 
             // Collect history: first at similar distance
             $history = $this->statsCalc->collectHistory($memberId, $eventId, $targetDistance, $x);
-            $this->logger()->info("  history at similar distance: " . count($history) . " records");
+            $this->logger->info("  history at similar distance: " . count($history) . " records");
 
             // If not enough records, expand to any distance
             if (count($history) < $x) {
                 $history = $this->statsCalc->collectHistory($memberId, $eventId, 999, $x); // very wide window = any distance
-                $this->logger()->info("  history expanded (any dist): " . count($history) . " records");
+                $this->logger->info("  history expanded (any dist): " . count($history) . " records");
             }
 
             if (empty($history)) {
-                $this->logger()->warning("  No eventResult history found for member {$memberId}");
+                $this->logger->warning("  No eventResult history found for member {$memberId}");
             }
 
-            // Compute stats
-            $stats = $this->statsCalc->computeStats($history, $targetDistance);
-            $this->logger()->info("  fastestPace={$stats['fastestPace']} avgPace={$stats['avgPace']} lsfPace={$stats['lsfPace']} mlrPace={$stats['mlrPace']} method={$stats['method']}");
+// Compute stats
+            $paceStats = $this->statsCalc->computeStats($history, $targetDistance);
+            $this->logger->info("  fastestPace={$paceStats['fastestPace']} avgPace={$paceStats['avgPace']} lsfPace={$paceStats['lsfPace']} mlrPace={$paceStats['mlrPace']} method={$paceStats['method']}");
 
             // Write member JSON working file
-            $this->writeMemberJson($eventId, $entry, $stats, $history, $daysSince, $runsSinceLastWin, $eventDate);
+            $this->writeMemberJson($eventId, $entry, $paceStats, $history, $daysSince, $runsSinceLastWin, $eventDate);
 
             // Update eventEntry in DB
-            $this->updateEventEntry($entry['id'], $stats, $daysSince, $runsSinceLastWin);
+            $this->updateEventEntry($entry['id'], $paceStats, $daysSince, $runsSinceLastWin);
 
             $stats['processed']++;
         }
 
-        $this->logger()->info("Processing complete — {$stats['processed']} members processed, {$stats['skipped']} skipped");
+        $this->logger->info("Processing complete — {$stats['processed']} members processed, {$stats['skipped']} skipped");
         return $stats;
     }
 
@@ -173,7 +175,7 @@ class MemberProcessor
             FROM eventEntry ee
             JOIN member m ON ee.member_id = m.id
             WHERE ee.event_id = :eventId
-              AND ee.able = 1
+              -- Process all entries regardless of able (CLI has no web UI to set able=true)
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['eventId' => $eventId]);
@@ -209,7 +211,7 @@ class MemberProcessor
         ];
 
         file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
-        $this->logger()->debug("  JSON written: {$filename}");
+        $this->logger->debug("  JSON written: {$filename}");
     }
 
     private function getMemberDir(int $eventId): string

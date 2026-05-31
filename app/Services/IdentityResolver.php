@@ -118,8 +118,8 @@ class IdentityResolver
         }
         $manifestPath = $outputDir . '/' . $eventId . '_manifest.csv';
 
-        $this->logger()->info("Resolving identities from: {$csvPath}");
-        $this->logger()->info("Output manifest: {$manifestPath}");
+        $this->logger->info("Resolving identities from: {$csvPath}");
+        $this->logger->info("Output manifest: {$manifestPath}");
 
         // Pre-load tagNo history for all members (for support signal)
         $tagNoHistory = $this->loadTagNoHistory();
@@ -178,13 +178,13 @@ class IdentityResolver
                 $resolved['notes'] ?? '',
             ]);
 
-            $this->logger()->debug("Row {$rowNum}: {$resolved['match_type']} → {$resolved['member_id']} ({$resolved['confidence_score']})");
+            $this->logger->debug("Row {$rowNum}: {$resolved['match_type']} → {$resolved['member_id']} ({$resolved['confidence_score']})");
         }
 
         fclose($handle);
         fclose($out);
 
-        $this->logger()->info("Identity resolution complete — {$rowNum} rows processed");
+        $this->logger->info("Identity resolution complete — {$rowNum} rows processed");
 
         return $manifestPath;
     }
@@ -270,7 +270,7 @@ class IdentityResolver
             LEFT JOIN email e ON m.email_id = e.id
             LEFT JOIN phone ph ON m.phone_id = ph.id
             LEFT JOIN (
-                SELECT member_id, tagNo, MAX(eventDate) as last_used
+                SELECT member_id, ANY_VALUE(tagNo) as tagNo, MAX(eventDate) as last_used
                 FROM eventEntry ee
                 JOIN event ev ON ee.event_id = ev.id
                 JOIN tagNo tn ON ee.tagNo_id = tn.id
@@ -378,15 +378,16 @@ class IdentityResolver
         // Round to 2 decimal places
         $confidence = round($confidence, 2);
 
-        return [
-            'tmp_id' => '',
-            'webscorer_tagNo_conflict' => 'no',
-            'tagNo_resolved' => $tagNo,
-            'member_id' => (string)$memberId,
-            'match_type' => $tier ?? 'unknown',
-            'confidence_score' => (string)$confidence,
-            'notes' => implode('; ', $notes),
-        ];
+return [
+                'tmp_id' => '',
+                'webscorer_tagNo_conflict' => 'no',
+                'tagNo_resolved' => $tagNo,
+                'member_id' => $memberId,
+                'match_type' => $tier,
+                'confidence_score' => (string)round($confidence, 2),
+                'confidence' => $confidence,
+                'notes' => implode('; ', $notes),
+            ];
     }
 
     /**
@@ -422,9 +423,10 @@ class IdentityResolver
     private function loadTagNoHistory(): array
     {
         $sql = "
-            SELECT er.member_id, tn.tagNo
+            SELECT er.member_id, ANY_VALUE(tn.tagNo) as tagNo
             FROM eventResult er
             JOIN tagNo tn ON er.tagNo_id = tn.id
+            GROUP BY er.member_id
         ";
         $stmt = $this->db->query($sql);
         $map = [];

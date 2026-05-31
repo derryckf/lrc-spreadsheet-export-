@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace App\Services;
+use PDO;
 
 require_once __DIR__ . '/../../src/legacy/linearRegression.php';
 require_once __DIR__ . '/../../src/legacy/RaceTimeNormalizer.php';
@@ -60,17 +61,13 @@ class MemberStatsComputer
         $lower = max(0.5, $targetDistance - $this->config['distance_window']);
         $upper = $targetDistance + $this->config['distance_window'];
 
-        // actual = IF(neg, time + handicap, time - handicap)
-        // paceSec = TIME_TO_SEC(actual) / distance  (seconds per km)
+        // actual = er.time (HH:MM:SS string, the runner's finish time)
+        // pace = er.pace (seconds per km, pre-computed)
         $sql = "
             SELECT
                 e.eventDate,
                 e.distance,
-                TIME_FORMAT(
-                    IF(er.neg,
-                        SEC_TO_TIME(TIME_TO_SEC(er.time) + TIME_TO_SEC(er.handicap)),
-                        SEC_TO_TIME(TIME_TO_SEC(er.time) - TIME_TO_SEC(er.handicap))
-                ) as actual,
+                er.time as actual,
                 er.pace,
                 v.name as venue
             FROM eventResult er
