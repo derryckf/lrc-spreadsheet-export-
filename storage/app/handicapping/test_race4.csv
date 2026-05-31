@@ -1,0 +1,127 @@
+tagNo,Name,firstName,lastName,distance,DOB,gender,category,estimate,email,registrationtime,Member email,totalfee,eventfee,seriesdiscount,racepassdiscount,racepassid,Invoice,Payment method,phone,Emergency contact name,Emergency contact phone #
+101,ROGERS Joseph,Joseph,Rogers-Snr,2.5km,1977-03-20,Male,Senior,0:14:00,joefisheries@hotmail.com,Apr 27 2023 at 8:01 PM,joefisheries@hotmail.com,6.00,6.00,0.00,0.00,0,1208741,,0416254580,Kym Rogers ,0425859403
+150,ROGERS Charlotte,Charlotte,Rogers,2.5km,2003-12-23,Female,Senior,0:25:00,joefisheries@hotmail.com,Apr 27 2023 at 8:01 PM,joefisheries@hotmail.com,6.00,6.00,0.00,0.00,0,1208741,,0416254580,Kym Rogers,0425859403
+688,BAILEY Carolyn,Carolyn,Bailey,5.0km,,Female,Senior,,vincemaxbailey@icloud.com,Apr 27 2023 at 7:22 PM,,0,0,0,0,0,,,,Vince Bailey,
+724,BAILEY Tegan,Tegan,Bailey,5.0km,,Female,Senior,,vincemaxbailey@icloud.com,Apr 27 2023 at 7:22 PM,,0,0,0,0,0,,,,Vince Bailey,
+450,MURRAY Alexander,Alexander,Murray,2.5km,2011-12-27,Male,Junior - 10 to 18 y.o.,0:10:55,debbiac2121@hotmail.com,Apr 27 2023 at 6:55 PM,debbiac2626@hotmail.com,4.00,4.00,0.00,0.00,0,1208752,Square,0437131441,Deb Murray,0437131441
+292,MURRAY Flynn,Flynn,Murray,1.5km,2013-12-23,Male,Junior - Juniors,0:05:50,debbiac2121@hotmail.com,Apr 27 2023 at 6:52 PM,debbiac2626@hotmail.com,4.00,4.00,0.00,0.00,0,1208749,Square,0437131441,Deb Murray,0437131441
+298,MCLENNAN Caine,Caine,McLennan,5.0km,1986-02-26,Male,Senior,,c.mclennan@outlook.com.au,Apr 27 2023 at 6:09 PM,,0,0,0,0,0,,,0431550852,Sarah Menzie,0439304785
+781,SHEEHAN Judy,Judy,Sheehan,5.0km,1954-03-30,Female,Senior,,sheehan56@hotmail.com,Apr 27 2023 at 6:09 PM,,0,0,0,0,0,,,0429058236,Cassie Sheehan,0429058236
+567,PADGETT Louise,Louise,Padgett,5.0km,1981-08-12,Female,Senior,23:00:00,loupadgett@bigpond.com,Apr 27 2023 at 6:06 PM,loupadgett@bigpond.com,6.00,6.00,0.00,0.00,0,1208732,Square,0428456847,M padgett,0429102900
+597,PADGETT Olivia,Olivia,Padgett,2.5km,2010-03-05,Female,Junior - 10 to 18 y.o.,0:11:00,loupadgett@bigpond.com,Apr 27 2023 at 6:06 PM,loupadgett@bigpond.com,4.00,4.00,0.00,0.00,0,1208732,Square,0428456847,L padgett,0429102900
+584,PADGETT Em,Em,Padgett,2.5km,2011-09-27,Female,Junior - 10 to 18 y.o.,0:11:30,loupadgett@bigpond.com,Apr 27 2023 at 6:06 PM,loupadgett@bigpond.com,4.00,4.00,0.00,0.00,0,1208732,Square,0428456847,L padge,0429102900
+279,PADGETT Chloe,Chloe,Padgett,1.5km,2016-01-28,Female,Junior - Juniors,0:09:30,loupadgett@bigpond.com,Apr 27 2023 at 6:06 PM,loupadgett@bigpond.com,4.00,4.00,0.00,0.00,0,1208732,Square,0428456847,L padge,0428456847
+534,PADGETT Mark,Mark,Padgett,5.0km,1978-10-29,Female,Senior,0:19:00,loupadgett@bigpond.com,Apr 27 2023 at 6:06 PM,loupadgett@bigpond.com,6.00,6.00,0.00,0.00,0,1208732,Square,0428456847,L padge,0429102900
+551,JOHNSON Peter,Peter,Johnson,5.0km,1969-08-24,Male,Senior,0:19:00,p.g.johnson@utas.edu.au,Apr 27 2023 at 6:00 PM,p.g.johnson@utas.edu.au,6.00,6.00,0.00,0.00,0,1208731,Square,0448815746,Hugh Johnson,0480202039
+734,BARNARD Michelle,Michelle,Barnard,5.0km,1970-08-25,Female,Senior,0:31:00,mich2508@outlook.com,Apr 27 2023 at 5:58 PM,mich2508@outlook.com,6.00,6.00,0.00,0.00,0,1208729,Square,0409792684,Mitchell Selby,0429 122 999
+791,BARNARD Jack,Jack,Barnard,2.5km,2010-08-16,Male,Junior - 10 to 18 y.o.,0:13:00,jackbarnard02@icloud.com,Apr 27 2023 at 5:58 PM,mich2508@outlook.com,4.00,4.00,0.00,0.00,0,1208729,Square,0499 877 248,Michelle Barnard,0409 792 684
+620,MCCOWEN Dan,Dan,McCowen,2.5km,1972-04-18,Male,Senior,0:11:00,asacaic@yahoo.com.au,Apr 27 2023 at 5:54 PM,asacaic@yahoo.com.au,6.00,6.00,0.00,0.00,0,1208727,Square,0474454300,Dan McCowen,0427439170
+554,BADCOCK Philip,Philip,Badcock,5.0km,1967-09-03,Male,Senior,0:27:30,brandubh7250@gmail.com,Apr 27 2023 at 5:40 PM,brandubh7250@gmail.com,6.00,6.00,0.00,0.00,0,1208722,Square,0363316125,Jo McLean ,0363316125
+598,JACKSON-MILLS Phoebe,Phoebe,Jackson-Mills,2.5km,2009-05-29,Female,Junior - 10 to 18 y.o.,0:10:00,cjjackson_1971@outlook.com,Apr 27 2023 at 5:29 PM,cjjackson_1971@outlook.com,4.00,4.00,0.00,0.00,0,1208373,,0414311795,Cj,0414311795
+664,TIMMS Christine,Christine,Timms,5.0km,1971-02-08,Female,Senior,,crtimms71@gmail.com,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0404519131,Daniel O'Shea,0418141650
+796,O'SHEA Daniel,Daniel,O'Shea,5.0km,1966-06-02,Male,Senior,,daniel@oshea.id.au,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0418141650,Christine Timms,0404519131
+176,YOUNG Darren,Darren,Young,5.0km,1966-03-02,Male,Senior,,darrenyoung@hn.ozemail.com.au,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0429351575,Darren Young,000
+28,JONES Scott,Scott,Jones,5.0km,1968-10-22,Male,Senior,,Sbjones@live.com.au,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0400462064,Katrina Jones,0413338622
+778,BOON Steven,Steven,Boon,5.0km,1967-11-27,Male,Senior,,dul.prv@gmail.com,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0408055614,Jamie Boon,0458056512
+643,GEORGE Deb,Deb,George,2.5km,1964-04-15,Female,Senior,,dsciulli@bigpond.net.au,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0438417440,Kirstie Burnie,0448908323
+777,GUEST Caroline,Caroline,Guest,5.0km,1959-06-24,Female,Senior,,caroline.guest@me.com,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0439652949,Anne Guest,0498433590
+-,IRWIN Lincoln,Lincoln,Irwin,1.5km,2016-03-11,Male,Junior - Juniors,,court_irwin@hotmail.com,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0439574905,Courtney Irwin,0439574905
+720,KULLER Malin,Malin,Kuller,5.0km,1980-03-08,Female,Senior,,malinkuller624@gmail.com,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0472744723,Karen Lane,0439 346 666
+-,LANE Karen,Karen,Lane,5.0km,1976-08-04,Female,Senior,,malinkuller624@gmail.com,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0439 346 666,Malin Kuller,0472744723
+605,STUART Mark,Mark,Stuart,5.0km,1964-06-24,Male,Senior,,miiu.tas@hotmail.com,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0488171163,Sharon Stuart,0439433446
+666,GIBB Nathan,Nathan,Gibb,5.0km,1980-10-03,Male,Senior,,ginganinja165@gmail.com,Apr 27 2023 at 5:20 PM,,0,0,0,0,0,,,0434351303,Rebecca,0363001199
+754,HOWELL Rod,Rod,Howell,2.5km,1950-08-29,Male,Senior,0:19:00,rodhowell.howell1@gmail.com,Apr 27 2023 at 5:00 PM,rodhowell.howell1@gmail.com,6.00,6.00,0.00,0.00,0,1208710,Square,0408348479,Andrew Howell,0438636359
+39,DARSAKLIS Tony,Tony,Darsaklis,5.0km,1970-03-10,Male,Senior,23:00:00,ydarsaklis@gmail.con,Apr 27 2023 at 4:32 PM,ydarsaklis@gmail.com,6.00,6.00,0.00,0.00,0,1208695,Square,0467740041,Yvette,0437996619
+761,SPICER Phil,Phil,Spicer,5.0km,1981-06-03,Male,Senior,0:22:00,pandaspicer@hotmail.com,Apr 27 2023 at 4:20 PM,pandaspicer@hotmail.com,6.00,6.00,0.00,0.00,0,1208689,Square,0409 567 473,Angela Spicer,0409 535 003
+280,SPICER Callum,Callum,Spicer,5.0km,2011-10-15,Male,Junior - 10 to 18 y.o.,0:21:00,pandaspicer@hotmail.com,Apr 27 2023 at 4:20 PM,pandaspicer@hotmail.com,6.00,6.00,0.00,0.00,0,1208689,Square,0409 535 003,Angela Spicer,0409 535 003
+673,SPICER Haylee,Haylee,Spicer,5.0km,2009-07-17,Female,Junior - 10 to 18 y.o.,0:25:00,pandaspicer@hotmail.com,Apr 27 2023 at 4:20 PM,pandaspicer@hotmail.com,6.00,6.00,0.00,0.00,0,1208689,Square,0409 535 003,Angela Spicer,0409 535 003
+674,SPICER Angela,Angela,Spicer,5.0km,1981-07-23,Female,Senior,0:28:00,pandaspicer@hotmail.com,Apr 27 2023 at 4:20 PM,pandaspicer@hotmail.com,6.00,6.00,0.00,0.00,0,1208689,Square,0409 535 003,Phil Spicer,0409 567 473
+569,FITZALLEN Steve,Steve,Fitzallen,5.0km,1973-11-15,Male,Senior,0:23:00,snfitzallen@gmail.com,Apr 27 2023 at 4:07 PM,snfitzallen@gmail.com,6.00,6.00,0.00,0.00,0,1208688,Square,+61 417 237 201,Karen,+61 400 931 900
+634,SPROSTON Barry,Barry,Sproston,5.0km,1980-09-08,Male,Senior,0:23:30,basproston@hotmail.com,Apr 27 2023 at 3:19 PM,basproston@hotmail.com,0.00,6.00,0.00,6.00,309735,1208674,,0422951735,Nadia,0468948687
+765,GUEST Sarah,Sarah,Guest,2.5km,1993-08-05,Female,Senior,15:00:00,sarahcguest5@yahoo.com.au,Apr 27 2023 at 2:18 PM,sarahcguest5@yahoo.com.au,6.00,6.00,0.00,0.00,0,1208661,Square,0477027727,Stuart Guest,0409939445
+514,REESE Timothy,Timothy,Reese,5.0km,1978-12-05,Male,Senior,0:22:22,sharni.long@gmail.com,Apr 27 2023 at 2:03 PM,sharni.long@gmail.com,6.00,6.00,0.00,0.00,0,1208656,Square,0400134764,Sharni Long,0400819700
+333,LONG Sharni,Sharni,Long,5.0km,1976-12-06,Female,Senior,0:37:37,sharni.long@gmail.com,Apr 27 2023 at 2:03 PM,sharni.long@gmail.com,6.00,6.00,0.00,0.00,0,1208656,Square,0400819700,Sharni Long,0400134764
+361,REESE Charlie,Charlie,Reese,5.0km,2008-12-05,Male,Junior - 10 to 18 y.o.,0:22:22,Charlie.Reese.0510@gmail.com,Apr 27 2023 at 2:03 PM,Charlie.Reese.0510@gmail.com,6.00,6.00,0.00,0.00,0,1208656,Square,0400134764,Charlie Reese,0400134764
+44,HAMMERSLEY Neil,Neil,Hammersley,5.0km,1949-01-20,Male,Senior,0:31:30,hammersbb@bigpond.com,Apr 27 2023 at 1:46 PM,hammersbb@bigpond.com,6.00,6.00,0.00,0.00,0,1208650,Square,+10418382842,Anne & Neil Hammersley,0429430277
+622,BARNEWALL Ricky,Ricky,Barnewall,5.0km,1984-10-11,Male,Senior,0:18:45,nbarnewall@goodstart.org.au,Apr 27 2023 at 12:31 PM,nbarnewall@goodstart.org.au,6.00,6.00,0.00,0.00,0,1208619,Square,0414851461,nat,0400906887
+645,BARNEWALL Freddy,Freddy,Barnewall,1.5km,2013-11-23,Male,Junior - Juniors,0:07:35,nbarnewall@goodstart.org.au,Apr 27 2023 at 12:31 PM,nbarnewall@goodstart.org.au,4.00,4.00,0.00,0.00,0,1208619,Square,0400906887,nat,0400906887
+713,BARNEWALL Jock,Jock,Barnewall,1.5km,2016-11-25,Male,Junior - Juniors,0:09:35,nbarnewall@goodstart.org.au,Apr 27 2023 at 12:31 PM,nbarnewall@goodstart.org.au,4.00,4.00,0.00,0.00,0,1208619,Square,0400906887,nat,0400906887
+166,HAY Nick,Nicholas,Hay,5.0km,1988-10-28,Male,Senior,0:21:40,njdhay@hotmail.com,Apr 27 2023 at 11:30 AM,njdhay@hotmail.com,6.00,6.00,0.00,0.00,0,1208594,Square,0408371760,Bee Newman,0427679517
+535,VAN DER VLIST Daniel,Daniel,Van Der Vlist,5.0km,1987-05-14,Male,Senior,0:19:45,danvlist@gmail.com,Apr 27 2023 at 10:16 AM,danvlist@gmail.com,6.00,6.00,0.00,0.00,0,1208535,Square,0402687244,Melissa Clark ,0448668005
+773,DE BOER Aurora,Aurora,De Boer,2.5km,2008-08-22,Female,Junior - 10 to 18 y.o.,0:15:00,spiritfreeheart@hotmail.com,Apr 27 2023 at 7:26 AM,spiritfreeheart@hotmail.com,4.00,4.00,0.00,0.00,0,1208321,Square,+61488001824,Aurora de Boer,0488001824
+296,BRADLEY Amy,Amy,Bradley,5.0km,1991-03-09,Female,Senior,0:27:55,amyleebradley91@gmail.com,Apr 26 2023 at 9:58 PM,amyleebradley91@gmail.com,6.00,6.00,0.00,0.00,0,1208044,Square,0419042933,Kelly Bradley,0408523839
+768,PICKERING Tristan,Tristan,Pickering,5.0km,1995-09-04,Male,Senior,0:17:30,tpickering@aussiebroadband.com.au,Apr 26 2023 at 9:38 PM,tpickering@aussiebroadband.com.au,6.00,6.00,0.00,0.00,0,1208036,Square,0431410557,Georgia Rundle,0487893133
+772,NGUYEN Tommy,Tommy,Nguyen,5.0km,2008-08-04,Male,Junior - 10 to 18 y.o.,0:30:00,Tommy.h.nguyen08@gmail.com,Apr 26 2023 at 9:01 PM,Tommy.h.nguyen08@gmail.com,6.00,6.00,0.00,0.00,0,1208019,Square,0432008444,Tommy Nguyen,0448934026
+748,HOWARD Mick,Mick,Howard,2.5km,1976-01-14,Male,Senior,0:11:30,mickjhoward@gmail.com,Apr 26 2023 at 9:00 PM,mickjhoward@gmail.com,6.00,6.00,0.00,0.00,0,1208012,Square,0415215266,Anita Howard,0429407914
+749,HOWARD Anita,Anita,Howard,2.5km,1979-04-29,Female,Senior,0:14:44,anita@anitahoward.com,Apr 26 2023 at 9:00 PM,anita@anitahoward.com,6.00,6.00,0.00,0.00,0,1208012,Square,0429407914,Mick Howard,0415215266
+798,HOWARD Annie,Annie,Howard,2.5km,2009-01-03,Female,Junior - 10 to 18 y.o.,0:12:30,mickjhoward@gmail.com,Apr 26 2023 at 9:00 PM,mickjhoward@gmail.com,4.00,4.00,0.00,0.00,0,1208012,Square,0415215266,Mick Howard,0415215266
+750,HOWARD Olive,Olive,Howard,1.5km,2013-08-07,Female,Junior - Juniors,0:07:23,mickjhoward@gmail.com,Apr 26 2023 at 9:00 PM,mickjhoward@gmail.com,4.00,4.00,0.00,0.00,0,1208012,Square,0415215266,Anita Howard,0415215266
+96,PROCTOR Katie,Katie,Proctor,5.0km,1980-12-11,Female,Senior,0:24:10,proctorka@gmail.com,Apr 26 2023 at 8:53 PM,proctorka@gmail.com,0.00,6.00,0.00,6.00,309735,1208013,,0438304680,John Proctor,0418356427
+644,STAAK Elizabeth,Elizabeth,Staak,5.0km,1984-09-25,Female,Senior,0:33:30,staak@bigpond.com,Apr 26 2023 at 8:44 PM,staak@bigpond.com,6.00,6.00,0.00,0.00,0,1208006,Square,0417016442,Daniel Staak,0419238779
+631,STAAK Blake,Blake,Staak,2.5km,2011-05-05,Male,Junior - 10 to 18 y.o.,0:18:00,staak@bigpond.com,Apr 26 2023 at 8:44 PM,staak@bigpond.com,4.00,4.00,0.00,0.00,0,1208006,Square,0417016442,Elizabeth Staak,0417016442
+729,STAAK Darcy,Darcy,Staak,1.5km,2014-04-11,Male,Junior - Juniors,0:10:00,staak@bigpond.com,Apr 26 2023 at 8:44 PM,staak@bigpond.com,4.00,4.00,0.00,0.00,0,1208006,Square,0417016442,Elizabeth Staak,0417016442
+592,EVEREST Sarah,Sarah,Everest,2.5km,2003-01-08,Female,Senior,0:21:32,sarah.everest03@gmail.com,Apr 26 2023 at 8:15 PM,sarah.everest03@gmail.com,6.00,6.00,0.00,0.00,0,1207998,Square,0492192647,Kylie,0413535204
+165,EVANS Leanne,Leanne,Evans,5.0km,1970-09-17,Female,Senior,0:24:00,leanne.evans@outlook.com.au,Apr 26 2023 at 8:01 PM,leanne.evans@outlook.com.au,0.00,6.00,0.00,6.00,309737,1207992,,+61414568163,Leanne Evans,0457780901
+743,BAILEY Evie,Evie,Bailey,1.5km,2017-02-07,Female,Junior - Juniors,0:14:34,kjbailey80@gmail.com,Apr 26 2023 at 7:58 PM,kjbailey80@gmail.com,4.00,4.00,0.00,0.00,0,1207989,Square,0413535204,Kylie ,0413535204
+604,SLOCOMBE Josh,Joshua,Slocombe,5.0km,2005-04-27,Male,Senior,0:23:30,tigerspremiers7@gmail.com,Apr 26 2023 at 7:55 PM,natalieslocombe@gmail.com,6.00,6.00,0.00,0.00,0,1207990,Square,0431343252,Natalie ,0488573106
+127,THOMAS Leanne,Leanne,Thomas,5.0km,1965-05-26,Female,Senior,0:29:30,leannethomas7@bigpond.com,Apr 26 2023 at 5:57 PM,leannethomas7@bigpond.com,6.00,6.00,0.00,0.00,0,1207951,Square,0404510178,Glenn Thomas,0458471643
+769,TIBBALLS Adam,Adam,Tibballs,5.0km,1981-05-10,Male,Senior,0:21:00,adamtibballs@gmail.com,Apr 26 2023 at 4:37 PM,adamtibballs@gmail.com,6.00,6.00,0.00,0.00,0,1207920,Square,0412697585,Lauren,0410148191
+40,DAVIES Anne,Anne,Davies,5.0km,1959-01-09,Female,Senior,0:33:00,peterannedavies@gmail.com,Apr 26 2023 at 1:23 PM,peterannedavies@gmail.com,6.00,6.00,0.00,0.00,0,1207813,Square,0438419876,peter,0438419876
+15,DAVIES Peter,Peter,Davies,5.0km,1954-06-05,Male,Senior,0:25:00,peterannedavies@gmail.com,Apr 26 2023 at 1:23 PM,peterannedavies@gmail.com,6.00,6.00,0.00,0.00,0,1207813,Square,0414516268,Anne,0438419876
+114,JONES Katrina,Katrina,Jones,5.0km,1969-07-23,Female,Senior,0:26:00,katsco2468@gmail.com,Apr 26 2023 at 12:07 PM,katsco2468@gmail.com,0.00,6.00,0.00,6.00,309737,1207757,,0413338622,Scott Jones ,0400462400
+735,LITTLECHILD Mark,Mark,Littlechild,5.0km,1976-05-07,Male,Senior,0:20:10,malittlechild@bigpond.com,Apr 26 2023 at 11:09 AM,malittlechild@bigpond.com,6.00,6.00,0.00,0.00,0,1207725,Square,0416160233,Kim Lockhart,0438933394
+793,MARSH Chloe,Chloe,Marsh,1.5km,2015-04-09,Female,Junior - Juniors,0:07:50,c.marsh@searoad.net,Apr 26 2023 at 11:05 AM,c.marsh@searoad.net,4.00,4.00,0.00,0.00,0,1207723,Square,0418393550,chris marsh,0418393550
+725,MARSH Chris,Chris,Marsh,5.0km,1976-08-09,Male,Senior,0:23:00,c.marsh@searoad.net,Apr 26 2023 at 11:03 AM,c.marsh@searoad.net,6.00,6.00,0.00,0.00,0,1207717,Square,0418393550,chris marsh,MELISSA MARSH
+719,ABEL Sebastian,Sebastian,Abel,1.5km,2015-02-11,Male,Junior - Juniors,0:08:00,karengambles@gmail.com,Apr 25 2023 at 9:40 PM,karengambles@gmail.com,4.00,4.00,0.00,0.00,0,1207447,Square,0437311114,Niki Abel,0417009149
+755,FLANAGAN Andrew,Andrew,Flanagan,5.0km,1966-12-20,Male,Senior,22:00:00,andflan71@dodo.com.au,Apr 25 2023 at 9:13 PM,andflan71@dodo.com.au,0.00,6.00,0.00,6.00,309737,1207442,,0419479208,Tania Flanagan,0407559395
+786,ROWLINGS Stephen,Stephen,Rowlings,5.0km,1978-07-04,Male,Senior,0:22:22,srowling78@outlook.com,Apr 25 2023 at 8:32 PM,srowling78@outlook.com,6.00,6.00,0.00,0.00,0,1207422,Square,0409752786,Sarah Rowlings,0499011138
+744,ROWLINGS Sarah,Sarah,Rowlings,2.5km,1982-12-16,Female,Senior,0:23:50,srowling78@outlook.com.au,Apr 25 2023 at 8:32 PM,srowling78@outlook.com,6.00,6.00,0.00,0.00,0,1207422,Square,0499011138,Stephen Rowlings,0409752786
+762,ROWLINGS Isaac,Isaac,Rowlings,2.5km,2013-01-23,Male,Junior - 10 to 18 y.o.,0:12:30,srowling78@outlook.com,Apr 25 2023 at 8:32 PM,srowling78@outlook.com,4.00,4.00,0.00,0.00,0,1207422,Square,0409752786,Stephen Rowlings,0409752786
+764,ROWLINGS Thomas,Thomas,Rowlings,1.5km,2015-09-04,Male,Junior - Juniors,0:08:00,srowling78@outlook.com,Apr 25 2023 at 8:32 PM,srowling78@outlook.com,4.00,4.00,0.00,0.00,0,1207422,Square,0409752786,Stephen Rowlings,0409752786
+580,BISHOP Leanne,Leanne,Bishop,2.5km,1974-09-30,Female,Senior,0:14:10,rubysneaker@gmail.com,Apr 25 2023 at 5:43 PM,rubysneaker@gmail.com,0.00,6.00,0.00,6.00,309736,1207382,,+61419562564,Leanne Bishop,0000
+20,BEATTIE Robyn,Robyn,Beattie,5.0km,1957-02-17,Female,Senior,0:34:35,robrickdale@hotmail.com,Apr 25 2023 at 2:41 PM,robrickdale@hotmail.com,6.00,6.00,0.00,0.00,0,1207300,Square,0439632277,Ricky Markham,0439632277
+82,MARKHAM Ricky,Ricky,Markham,5.0km,1957-08-09,Male,Senior,0:45:00,robrickdale@hotmail.com,Apr 25 2023 at 2:41 PM,robrickdale@hotmail.com,6.00,6.00,0.00,0.00,0,1207300,Square,0439632277,Robyn Beattie,0439632277
+11,HILL Melanie,Melanie,Hill,5.0km,1974-01-16,Female,Senior,0:30:00,m-ela@live.com.au,Apr 25 2023 at 1:32 PM,m-ela@live.com.au,6.00,6.00,0.00,0.00,0,1207273,Square,0455593627,Jono Hill,0437449530
+771,BUTLER Tony,Tony,Butler,5.0km,1984-11-26,Male,Senior,24:00:00,rrlscientist@gmail.com,Apr 25 2023 at 7:54 AM,rrlscientist@gmail.com,0.00,6.00,0.00,6.00,309736,1207118,,0457107388,Sue Butler,+61211041384
+89,O'REGAN Shaun,Shaun,O'Regan,5.0km,1953-06-28,Male,Senior,0:24:30,sh.oregan@bigpond.com,Apr 25 2023 at 7:14 AM,sh.oregan@bigpond.com,6.00,6.00,0.00,0.00,0,1207104,Square,0400992515,Shaun O'Regan,0428122203
+30,O'REGAN Debra,Debra,O'Regan,5.0km,1953-06-28,Female,Senior,0:35:00,sh.oregan@bigpond.com,Apr 25 2023 at 7:14 AM,sh.oregan@bigpond.com,6.00,6.00,0.00,0.00,0,1207104,Square,0428122203,Debra O'Regan,0400992515
+699,BLYTH Jayne,Jayne,Blyth,5.0km,1968-01-04,Female,Senior,0:35:00,jayne_blyth@bigpond.com,Apr 24 2023 at 5:44 PM,jayne_blyth@bigpond.com,6.00,6.00,0.00,0.00,0,1206743,Square,0419844520,Jayne Blyth,0439332070
+753,WEBB Christopher,Christopher,Webb,5.0km,1990-04-02,Male,Senior,0:21:30,cmwebb1990@gmail.com,Apr 24 2023 at 2:36 PM,cmwebb1990@gmail.com,6.00,6.00,0.00,0.00,0,1206692,Square,0409004326,Amy Bradley,0419042933
+277,FAWCETT Sarah,Sarah,Fawcett,5.0km,1978-05-04,Female,Senior,0:30:00,sarah.dowling@education.tas.gov.au,Apr 24 2023 at 11:59 AM,sarah.dowling@education.tas.gov.au,6.00,6.00,0.00,0.00,0,1206640,Square,0428443883,Sarah Fawcett,0407443883
+716,COWIE Jo-Anne,Jo-Anne,Cowie,5.0km,1969-11-28,Female,Senior,0:38:00,jmandcc@bigpond.com,Apr 23 2023 at 7:42 PM,jmandcc@bigpond.com,6.00,6.00,0.00,0.00,0,1206317,Square,+61408032672,Craig  Cowie,+61438745867
+667,SHEEHAN Cassandra,Cassandra,Sheehan,5.0km,1984-02-20,Female,Senior,0:21:00,cassie_sheehan@hotmail.com,Apr 23 2023 at 6:54 PM,cassie_sheehan@hotmail.com,6.00,6.00,0.00,0.00,0,1206311,Square,0402725000,Judy Sheehan,0429 058 236
+763,MORONEY Patrick,Patrick,Moroney,5.0km,1974-11-23,Male,Senior,0:20:00,patrickjohnmoroney@hotmail.com,Apr 22 2023 at 8:43 PM,patrickjohnmoroney@hotmail.com,6.00,6.00,0.00,0.00,0,1205873,Square,0400944006,Isaac Moroney ,0439 898 969
+297,GUEST Anne,Anne,Guest,5.0km,1995-09-07,Female,Senior,0:30:00,anneguest@icloud.com,Apr 22 2023 at 7:37 PM,anneguest@icloud.com,6.00,6.00,0.00,0.00,0,1205869,Square,0498433590,Stuart Guest,0409939445
+702,BRAMICH Sienna,Sienna,Bramich,1.5km,2014-09-17,Female,Junior - Juniors,,melindabramich@gmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,+61408791875,Melinda,+61408791875
+701,BRAMICH Talia,Talia,Bramich,1.5km,2012-05-29,Female,Junior - Juniors,,melindabramich@gmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,+61408791875,Melinda,+61408791875
+767,BRAMICH Zaria,Zaria,Bramich,1.5km,2016-11-16,Female,Junior - Juniors,,melindabramich@gmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,+61408791875,Melinda,+61408791875
+692,ROWLINGS Jacinta,Jacinta,Rowlings,1.5km,2014-03-26,Female,Junior - Juniors,,jadarowlings2010@icloud.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0417308188,PAUL.ROWLINGS,0417308188
+681,WEBB Lucy,Lucy,Webb,1.5km,2015-09-20,Female,Junior - Juniors,,fionaenjo@y7mail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0417104064,Ian Webb,0466620177
+593,WEBB Noah,Noah,Webb,1.5km,2012-05-10,Male,Junior - Juniors,,fionaenjo@y7mail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0417104064,Ian Webb,0466620177
+288,FAWCETT John,John,Fawcett,5.0km,1946-07-10,Male,Senior,,djohnfawcett@hotmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0407443883,Sarah Fawcett,0428443883
+3,JACKSON Harry,Harry,Jackson,2.5km,2011-02-10,Male,Junior - 10 to 18 y.o.,,jackson2domane@gmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0419311798,Harry robert JACKSON,0419311798
+209,JACKSON Jane,Jane,Jackson,2.5km,1975-02-26,Female,Senior,,jane@pilates4me.net.au,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0409400483,jane Elizabeth Jackson,0419311798
+687,JACKSON Lucy,Lucy,Jackson,2.5km,2009-06-12,Female,Junior - 10 to 18 y.o.,,lejackson@lcgs.tas.edu.au,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0409400483,Jane Jackson,0409400483
+546,JESSUP Melissa,Melissa,Jessup,5.0km,1988-01-27,Female,Senior,,melwilliams6@hotmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0438525641,Leigh Jessup,0409127920
+675,ROWLINGS Jada,Jada,Rowlings,2.5km,2010-05-31,Female,Junior - 10 to 18 y.o.,,jadarowlings2010@icloud.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0478644711,PAUL ROWLINNGS,0417308188
+42,WEBB Fiona,Fiona,Webb,2.5km,1981-09-26,Female,Senior,,fionaenjo@y7mail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0417104064,Ian Webb,0466620177
+91,WEBB Peyton,Peyton,Webb,2.5km,2009-11-04,Female,Junior - 10 to 18 y.o.,,fionaenjo@y7mail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0417104064,Ian Webb,0466620177
+752,ASHLIN Sam,Sam,Ashlin,5.0km,2002-05-27,Male,Senior,,sam.ashlin56@gmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0457633936,Mum,0438281704
+672,BRAMICH Melinda,Melinda,Bramich,5.0km,1986-09-10,Female,Senior,,melindabramich@gmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,+61408791875,Melinda,+61408791875
+533,BROWN Mark,Mark,Brown,5.0km,1966-11-17,Male,Senior,,markbrownemail@gmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0407874068,Felicity,0488237826
+596,DE WIT Fiona,Fiona,De Wit,5.0km,1970-08-12,Female,Senior,,camerondewit6@bigpond.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,+61447302385,Cameron,0409303385
+13,GREAVES Scott,Scott,Greaves,5.0km,1967-10-08,Male,Senior,,sgreaves@iinet.net.au,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0408569554,Joy Towns,63448014
+632,HEGER Penny,Penny,Heger,5.0km,1982-06-12,Female,Senior,,pennyandtwins@bigpond.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0407 650 822,Jamie Heger,0419345978
+758,JACKSON Nathan,Nathan,Jackson,5.0km,1975-10-10,Male,Senior,,jackson2domane@gmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0419311798,Jane Jackson,0409400483
+65,JACKSON Rosie,Rosie,Jackson,5.0km,2006-06-09,Female,Junior - 10 to 18 y.o.,,jane@pilates4me.net.au,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,+61409400483,Jane Jackson,0409400483
+629,JESSUP Leigh,Leigh,Jessup,5.0km,1986-07-30,Male,Senior,,leighjessup@gmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0409127920,Melissa Jessup,0438525641
+727,KERR Susan,Susan,Kerr,5.0km,1959-08-18,Female,Senior,,susankerr66@hotmail.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0407 877 286,Chris,0407 877 286
+637,MENZIE Sarah,Sarah,Menzie,5.0km,1985-12-17,Female,Senior,,smenzie85@me.com,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0439 304 785,Caine McLennan,0431 550 852
+199,TATCHELL Robert,Robert,Tatchell,5.0km,1955-07-09,Male,Senior,,pjtatchell@bigpond.com.au,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,0417548470,Phillippa Tatchell,0439747663
+27,WIERENGA Pete,Pete,Wierenga,5.0km,1971-02-16,Male,Senior,,pete@145financial.com.au,Apr 19 2023 at 5:48 PM,,0,0,0,0,0,,,040093459,rob mccullagh,0418136028
+286,FAROOQ Usama,Usama,Farooq,5.0km,1995-03-23,Male,Senior,0:30:00,fuzama23@gmail.com,Apr 19 2023 at 10:45 AM,fuzama23@gmail.com,6.00,6.00,0.00,0.00,0,1203776,Square,0450450669,Dr Muhammad Farooq,0469288264
+75,LOADER Paul,Paul,Loader,5.0km,1957-11-21,Male,Senior,0:28:01,jploader@hotmail.com,Apr 14 2023 at 9:21 PM,annieloader@hotmail.com,0.00,6.00,0.00,6.00,309735,1201150,,0418145243,Annie Loader,0407145243
+76,LOADER Annie,Annie,Loader,5.0km,1964-11-27,Female,Senior,0:30:01,annieloader@hotmail.com,Apr 6 2023 at 7:30 PM,annieloader@hotmail.com,5.55,6.00,0.45,0.00,0,1197104,Square,0407145243,Paul Loader,0418145243
+627,GEALE Harrison,Harrison,Geale,1.5km,2013-02-18,Male,Junior - Juniors,0:13:30,lageale@hotmail.com,Mar 30 2023 at 8:00 AM,lageale@hotmail.com,5.85,6.00,0.15,0.00,0,1193476,Square,0409966227,Cassie,0438227742
+179,HILL Seth,Seth,Hill,2.5km,2010-03-08,Male,Junior - 10 to 18 y.o.,0:25:00,jonohill795@gmail.com,Mar 30 2023 at 7:52 AM,jonohill795@gmail.com,5.40,6.00,0.60,0.00,0,1193405,Square,0437449530,Jonathon Hill,0437449530
+566,HILL Mason,Mason,Hill,1.5km,2013-01-10,Male,Junior - Juniors,0:18:00,hilljono79@gmail.com,Mar 30 2023 at 7:52 AM,jonohill795@gmail.com,5.40,6.00,0.60,0.00,0,1193405,Square,0437449530,Jonathon Hill,0437449530

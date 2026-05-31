@@ -1,0 +1,23 @@
+# Vendor (commit composer.lock only)
+/vendor/
+
+# PHP temp files
+.htaccess
+.phpunit.cache/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# XLSX export outputs (regeneratable)
+/storage/app/handicapping/*/exports/*.xlsx
+/storage/app/handicapping/*/exports/*.csv
+/storage/app/handicapping/*/members/
+/storage/app/handicapping/*/identity/
+
+# Docker volumes
+.docker/mysql/data/
+
+# Test outputs
+*.output_file
