@@ -349,7 +349,7 @@ $startPosition = $position_in_sorted_order;
 | Command | Class | Signature |
 |---------|-------|-----------|
 | `webscorer:parse` | `WebscorerParseCommand` | `{file}` |
-| `webscorer:resolve` | `WebscorerResolveCommand` | `{eventId} {csv}` |
+| `webscorer:resolve` | `WebscorerResolveCommand` | `{eventId} {csv} [--interactive] [--skip-unknowns]` |
 | `handicapper:process` | `HandicapperProcessCommand` | `{eventId} {--x=8}` |
 | `handicapper:export` | `HandicapperExportCommand` | `{eventId} {--format=xlsx}` |
 | `handicapper:import` | `HandicapperImportCommand` | `{eventId} {file}` |
@@ -357,6 +357,31 @@ $startPosition = $position_in_sorted_order;
 All support:
 - `--dry-run` — no DB writes
 - `--verbose` / `-v` — detailed output
+
+#### webscorer:resolve — Interactive Unknown Resolution
+
+```
+php cli.php webscorer:resolve <eventId> <csv> [--interactive] [--skip-unknowns]
+```
+
+**Flow:**
+1. Run identity matching → manifest with known and unknown (tmp_*) rows
+2. Known rows → processed immediately via MemberCreator
+3. Unknown rows → interactive prompt per runner:
+
+| Choice | Action |
+|--------|--------|
+| `M <id>` | Match to existing member ID — creates eventEntry only |
+| `U <id>` | Update member fields, then create eventEntry — shows DB values, confirm changes |
+| `C` | Create new member (status=prov), create eventEntry |
+| `S` | Skip this runner — no member, no eventEntry |
+| `A` | Approve remaining as new — bulk insert all remaining unknowns |
+| `Q` | Quit — stops processing |
+
+**`--skip-unknowns`**: processes known rows only, skips all unknowns  
+**No flags (default)**: warns if unknowns found, excludes them from processing
+
+The workflow enables new-member creation to happen race-morning without holding up spreadsheet generation for known runners.
 
 Each command:
 1. Loads config (`config/lrc-handicapping.php`)
