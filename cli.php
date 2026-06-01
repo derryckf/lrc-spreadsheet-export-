@@ -118,7 +118,7 @@ LRC Handicapping CLI
 
 Usage:
   php cli.php webscorer:parse <file> [--name=<identity_basename>]
-  php cli.php webscorer:resolve <eventId> <manifest.csv>
+  php cli.php webscorer:resolve <eventId> <manifest.csv> [--interactive] [--skip-unknowns]
   php cli.php handicapper:process <eventId> [--x=8]
   php cli.php handicapper:export <eventId> [--format=xlsx] [--all-divisions]
   php cli.php handicapper:import <eventId> <file.xlsx>
@@ -127,6 +127,8 @@ Usage:
 Commands:
   webscorer:parse     Parse Webscorer TXT to normalised CSV
   webscorer:resolve   Resolve identities + create member/eventEntry records
+                       --interactive: prompt for each unknown runner (M=match, U=update, C=create, S=skip, A=approve all)
+                       --skip-unknowns: skip all unknown runners without prompting
   handicapper:process Compute stats (daysSince, lastWin, pace estimates)
   handicapper:export  Export spreadsheet for handicapper
   handicapper:import  Import completed spreadsheet to update DB
@@ -183,14 +185,19 @@ function runWebscorerResolve(array $args, CliLogger $logger): void
     $opts = parseOpts($args);
     $positional = $opts['positional'];
     if (count($positional) < 2) {
-        fail("Usage: php cli.php webscorer:resolve <eventId> <manifest.csv>");
+        fail("Usage: php cli.php webscorer:resolve <eventId> <manifest.csv> [--interactive] [--skip-unknowns]");
     }
     $eventId = (int)$positional[0];
     $manifestCsv = $positional[1];
+    $interactive = isset($opts['interactive']);
+    $skipUnknowns = isset($opts['skip-unknowns']);
+    $config = require __DIR__ . '/config/lrc-handicapping.php';
+
     $logger->info("Step 2: Resolve identities + create members");
     $logger->info("Event: {$eventId}");
     $logger->info("Manifest: {$manifestCsv}");
-    $config = require __DIR__ . '/config/lrc-handicapping.php';
+
+    // ── Step 2a: Identity resolution (CSV → manifest) ──────────────────────────
     $resolvedCsv = $manifestCsv;
     if (!str_ends_with($manifestCsv, '_manifest.csv')) {
         $logger->info("Resolving raw webscorer CSV...");
@@ -198,86 +205,70 @@ function runWebscorerResolve(array $args, CliLogger $logger): void
         $resolvedCsv = $resolver->resolve($manifestCsv, $eventId);
         $logger->info("Manifest created: {$resolvedCsv}");
     }
-    $logger->info("Creating/updating member and eventEntry records...");
-    $creator = new \App\Services\MemberCreator(getDb(), $logger, $config);
-    $stats = $creator->createMembers($resolvedCsv, $eventId);
-    echo "\n";
-    echo "Total rows:     {$stats['total']}\n";
-    echo "Members created: {$stats['created']}\n";
-    echo "Updated:        {$stats['updated']}\n";
-    echo "Skipped:        {$stats['skipped']}\n";
-}
 
-function runHandicapperProcess(array $args, CliLogger $logger): void
-{
-    $opts = parseOpts($args);
-    $positional = $opts['positional'];
-    if (count($positional) < 1) {
-        fail("Usage: php cli.php handicapper:process <eventId> [--x=8]");
-    }
-    $eventId = (int)$positional[0];
-    $x = (int)($opts['x'] ?? 8);
-    $logger->info("Step 3: Process members for event {$eventId} (x={$x})");
-    $config = require __DIR__ . '/config/lrc-handicapping.php';
-    $config['history_rows_default'] = $x;
-    require_once __DIR__ . '/app/Services/LastWinCalculator.php';
-    require_once __DIR__ . '/app/Services/MemberStatsComputer.php';
-    require_once __DIR__ . '/app/Services/MemberProcessor.php';
-    $processor = new \App\Services\MemberProcessor(getDb(), $logger, $config);
-    $result = $processor->process($eventId, $x);
-    echo "\n";
-    echo "Processed: {$result['processed']}\n";
-    echo "Skipped:   {$result['skipped']}\n";
-}
-
-function runHandicapperExport(array $args, CliLogger $logger): void
-{
-    $opts = parseOpts($args);
-    $positional = $opts['positional'];
-    if (count($positional) < 1) {
-        fail("Usage: php cli.php handicapper:export <eventId> [--format=xlsx] [--all-divisions]");
-    }
-    $eventId = (int)$positional[0];
-    $format = $opts['format'] ?? 'xlsx';
-    $allDivisions = isset($opts['all-divisions']);
-    $logger->info("Step 4: Export spreadsheet for event {$eventId}" . ($allDivisions ? ' (all divisions)' : ''));
-    $config = require __DIR__ . '/config/lrc-handicapping.php';
-    require_once __DIR__ . '/app/Services/SpreadsheetExporter.php';
-    $exporter = new \App\Services\SpreadsheetExporter(getDb(), $logger, $config);
-    $path = $exporter->export($eventId, $format, 8, $allDivisions);
-    $logger->info("Spreadsheet exported: {$path}");
-    echo "\n{$path}\n";
-}
-
-function runHandicapperImport(array $args, CliLogger $logger): void
-{
-    $opts = parseOpts($args);
-    $positional = $opts['positional'];
-    if (count($positional) < 2) {
-        fail("Usage: php cli.php handicapper:import <eventId> <file.xlsx>");
-    }
-    $eventId = (int)$positional[0];
-    $file = $positional[1];
-    $logger->info("Step 5: Import completed spreadsheet for event {$eventId}");
-    $config = require __DIR__ . '/config/lrc-handicapping.php';
-    require_once __DIR__ . '/app/Services/HandicapImporter.php';
-    $importer = new \App\Services\HandicapImporter(getDb(), $logger, $config);
-    $result = $importer->import($eventId, $file);
-    $logger->info("Import complete: updated={$result['updated']}, skipped={$result['skipped']}");
-    if (!empty($result['errors'])) {
-        foreach ($result['errors'] as $err) {
-            $logger->warning($err);
+    // ── Step 2b: Read manifest, separate known vs unknown ───────────────────
+    $knownRows = [];
+    $unknownRows = [];
+    $h = fopen($resolvedCsv, 'r');
+    $headers = fgetcsv($h);
+    $headers = array_map('trim', $headers);
+    while (($row = fgetcsv($h)) !== false) {
+        $data = array_combine($headers, $row);
+        $data['_eventId'] = $eventId;
+        if (str_starts_with($data['member_id'] ?? '', 'tmp_')) {
+            $unknownRows[] = $data;
+        } else {
+            $knownRows[] = $data;
         }
     }
-    echo "\n";
-    echo "Updated: {$result['updated']}\n";
-    echo "Skipped: {$result['skipped']}\n";
-    if (!empty($result['errors'])) {
-        echo "Errors: " . count($result['errors']) . "\n";
+    fclose($h);
+
+    $logger->info(sprintf("Known: %d | Unknown: %d", count($knownRows), count($unknownRows)));
+
+    // ── Step 2c: Process known rows ────────────────────────────────────────────
+    if (!empty($knownRows)) {
+        $logger->info("Creating/updating " . count($knownRows) . " known member records...");
+        $creator = new \App\Services\MemberCreator(getDb(), $logger, $config);
+        $eventStmt = getDb()->prepare("SELECT id, eventDate, division, distance FROM event WHERE id = ?");
+        $eventStmt->execute([$eventId]);
+        $event = $eventStmt->fetch(\PDO::FETCH_ASSOC);
+        $knownStats = $creator->createMembersFromArray($knownRows, $eventId, $event);
+        echo "Known — Created: {$knownStats['created']}, Updated: {$knownStats['updated']}, Skipped: {$knownStats['skipped']}\n";
     }
+
+    // ── Step 2d: Handle unknowns ──────────────────────────────────────────────
+    $unknownStats = ['created' => 0, 'matched' => 0, 'updated' => 0, 'skipped' => count($unknownRows)];
+    if (!empty($unknownRows)) {
+        if ($skipUnknowns) {
+            $logger->info("Skipping " . count($unknownRows) . " unknown runners (use --interactive to resolve).");
+        } elseif ($interactive) {
+            $logger->info("Starting interactive resolution for " . count($unknownRows) . " unknown runner(s)...");
+            $iResolver = new \App\Services\InteractiveResolver(getDb(), $logger, $config);
+            try {
+                $unknownStats = $iResolver->resolveInteractive($resolvedCsv, $eventId, $unknownRows);
+            } catch (\RuntimeException $e) {
+                if ($e->getMessage() === 'USER_QUIT') {
+                    $logger->info("User quit. Known runners processed.");
+                    return;
+                }
+                throw $e;
+            }
+        } else {
+            $msg = sprintf("%d unknown runner(s) found. Run with --interactive to resolve, or --skip-unknowns to exclude.", count($unknownRows));
+            $logger->warning($msg);
+            echo "WARNING: {$msg}\n";
+            echo "Unknown runners NOT added to eventEntries.\n";
+        }
+    }
+
+    echo "\n";
+    echo "Total:       " . (count($knownRows) + count($unknownRows)) . "\n";
+    echo "Created:     " . ($unknownStats['created'] ?? 0) . "\n";
+    echo "Matched:     " . ($unknownStats['matched'] ?? 0) . "\n";
+    echo "Updated:     " . ($unknownStats['updated'] ?? 0) . "\n";
+    echo "Skipped:     " . ($unknownStats['skipped'] ?? 0) . "\n";
 }
 
-// Helpers
 function fail(string $msg): never
 {
     fwrite(STDERR, $msg . "\n");
@@ -298,3 +289,5 @@ function parseOpts(array $args): array
     }
     return ['positional' => $positional, ...$named];
 }
+
+

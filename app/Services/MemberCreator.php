@@ -114,6 +114,32 @@ class MemberCreator
     }
 
     /**
+     * Create/upsert member records from an array of row data.
+     * Used by interactive resolve to process known rows.
+     *
+     * @param array[] $rows  Array of row arrays (with member_id, firstName, etc.)
+     * @param int    $eventId
+     * @param array  $event   Event row from DB
+     * @return array{total:int, created:int, updated:int, skipped:int}
+     */
+    public function createMembersFromArray(array $rows, int $eventId, array $event): array
+    {
+        $stats = ['total' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0];
+        foreach ($rows as $data) {
+            $data['_eventId'] = $eventId;
+            $stats['total']++;
+            try {
+                $result = $this->processRow($data, $eventId, $event);
+                $stats[$result]++;
+            } catch (\Throwable $e) {
+                $this->logger()->warning("Row: " . $e->getMessage());
+                $stats['skipped']++;
+            }
+        }
+        return $stats;
+    }
+
+    /**
      * Process a single manifest row.
      */
     private function processRow(array $data, int $eventId, array $event): string
