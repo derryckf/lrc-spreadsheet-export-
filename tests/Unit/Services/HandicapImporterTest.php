@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Services\HandicapImporter;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\FakePDO;
 
 /**
  * Unit tests for HandicapImporter.
@@ -21,7 +22,7 @@ class HandicapImporterTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->db = new \FakePDO();
+        $this->db = new FakePDO();
         // Must set resolver BEFORE creating HandicapImporter (which calls loadAllEntries in import)
         $this->db->setFixtureResolver(function (string $sql): string {
             $u = strtoupper($sql);

@@ -1,4 +1,6 @@
 <?php
+namespace Tests\Support;
+
 /**
  * FakeResultSet — extends PDOStatement, bypasses parent::__construct() requirement
  * by calling the protected constructor via reflection with a static SQLite handle.
@@ -60,7 +62,7 @@ class FakeResultSet extends \PDOStatement
         return true;
     }
 
-    public function fetch(int $mode = \PDO::FETCH_DEFAULT, ...$args): mixed
+     public function fetch(int $mode = \PDO::FETCH_DEFAULT, ...$args): mixed
     {
         if (!$this->executed) return false;
         if (!is_array($this->data)) {
@@ -68,10 +70,15 @@ class FakeResultSet extends \PDOStatement
             $this->cursor++;
             return $mode === \PDO::FETCH_NUM ? [$val] : ['scalar' => $val, 0 => $val];
         }
-        // Associative array (single row): convert to indexed for cursor-based access
-        $indexed = array_values($this->data);
-        if ($this->cursor >= count($indexed)) return false;
-        $row = $indexed[$this->cursor++];
+        // Detect associative (column=>value map representing a single row)
+        // vs indexed array of rows. Associative arrays come from scalar SELECTs
+        // (e.g. ['email' => 'a@b.com']) and must be returned as-is.
+        if ($this->cursor === 0 && array_keys($this->data) !== range(0, count($this->data) - 1)) {
+            // Associative: this is a single row (column=>value). Wrap in list for cursor.
+            $this->data = [$this->data];
+        }
+        if ($this->cursor >= count($this->data)) return false;
+        $row = $this->data[$this->cursor++];
         if ($mode === \PDO::FETCH_NUM) return array_values($row);
         if ($mode === \PDO::FETCH_BOTH) return array_merge($row, array_values($row));
         return $row;
@@ -124,6 +131,8 @@ class FakeResultSet extends \PDOStatement
     public function getAttribute(int $attr): mixed { return null; }
     public function count(): int { return is_array($this->data) ? count($this->data) : 1; }
 }
+
+namespace Tests\Support;
 
 /**
  * FakePDO — extends \PDO to satisfy type hints, returns FakeResultSet via factory.

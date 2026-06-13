@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Services\SpreadsheetExporter;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\FakePDO;
 
 /**
  * Unit tests for SpreadsheetExporter.
@@ -24,7 +25,7 @@ class SpreadsheetExporterTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->db = new \FakePDO();
+        $this->db = new FakePDO();
         $this->ex = new SpreadsheetExporter($this->db, null, [
             'history_rows_default' => 8,
             'storage_path'         => 'handicapping',

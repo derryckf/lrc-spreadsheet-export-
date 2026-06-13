@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: lrc-spreadsheet-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: lacsite_deploy
+      MYSQL_USER: lrcuser
+      MYSQL_PASSWORD: lrcpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+      - lrc-spreadsheet-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ulrcuser", "-plrcpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  lrc-spreadsheet-mysql-data:
+    name: lrc-spreadsheet-mysql-data

@@ -7,8 +7,9 @@
  *   php cli.php webscorer:parse {file} {--name=}
  *   php cli.php webscorer:resolve {eventId} {csv}
  *   php cli.php handicapper:process {eventId} {--x=8}
- *   php cli.php handicapper:export {eventId} [--format=xlsx] [--all-divisions]
- *   php cli.php handicapper:import {eventId} {file}
+ *   php cli.php handicapper:export {eventId} [--format=xlsx] [--all-divisions] [--gdrive]
+ *   php cli.php handicapper:import {eventId} [{file.xlsx}] [--gdrive[=fileId]]
+ *   php cli.php handicapper:gdrive:list
  *   php cli.php --help
  *
  * Environment variables (or config/database.php):
@@ -120,8 +121,9 @@ Usage:
   php cli.php webscorer:parse <file> [--name=<identity_basename>]
   php cli.php webscorer:resolve <eventId> <manifest.csv> [--interactive] [--skip-unknowns]
   php cli.php handicapper:process <eventId> [--x=8]
-  php cli.php handicapper:export <eventId> [--format=xlsx] [--all-divisions]
-  php cli.php handicapper:import <eventId> <file.xlsx>
+  php cli.php handicapper:export <eventId> [--format=xlsx] [--all-divisions] [--gdrive]
+  php cli.php handicapper:import <eventId> [<file.xlsx>] [--gdrive[=fileId]]
+  php cli.php handicapper:gdrive:list
   php cli.php --help
 
 Commands:
@@ -130,8 +132,9 @@ Commands:
                        --interactive: prompt for each unknown runner (M=match, U=update, C=create, S=skip, A=approve all)
                        --skip-unknowns: skip all unknown runners without prompting
   handicapper:process Compute stats (daysSince, lastWin, pace estimates)
-  handicapper:export  Export spreadsheet for handicapper
-  handicapper:import  Import completed spreadsheet to update DB
+  handicapper:export  Export spreadsheet for handicapper (--gdrive to upload to Drive)
+  handicapper:import  Import completed spreadsheet from --gdrive or local file
+  handicapper:gdrive:list List files in Drive folder
 
 Environment:
   DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
@@ -150,6 +153,7 @@ try {
         'handicapper:process' => runHandicapperProcess($args, $logger),
         'handicapper:export' => runHandicapperExport($args, $logger),
         'handicapper:import' => runHandicapperImport($args, $logger),
+        'handicapper:gdrive:list' => runHandicapperGdriveList($args, $logger),
         default => fail("Unknown command: {$command}\n"),
     };
 } catch (Throwable $e) {
@@ -212,7 +216,14 @@ function runWebscorerResolve(array $args, CliLogger $logger): void
     $h = fopen($resolvedCsv, 'r');
     $headers = fgetcsv($h);
     $headers = array_map('trim', $headers);
+    $headerCount = count($headers);
     while (($row = fgetcsv($h)) !== false) {
+        // Defensive: pad or truncate row to match header count
+        if (count($row) < $headerCount) {
+            $row = array_pad($row, $headerCount, '');
+        } elseif (count($row) > $headerCount) {
+            $row = array_slice($row, 0, $headerCount);
+        }
         $data = array_combine($headers, $row);
         $data['_eventId'] = $eventId;
         if (str_starts_with($data['member_id'] ?? '', 'tmp_')) {
@@ -291,3 +302,192 @@ function parseOpts(array $args): array
 }
 
 
+
+
+// ═══════════════════════════════════════════════════════════════════
+// handicapper:process — compute stats
+// ═══════════════════════════════════════════════════════════════════
+
+function runHandicapperProcess(array $args, CliLogger $logger): void
+{
+    $opts = parseOpts($args);
+    $positional = $opts['positional'];
+    if (count($positional) < 1) {
+        fail("Usage: php cli.php handicapper:process <eventId> [--x=8]");
+    }
+    $eventId = (int)$positional[0];
+    $x = (int)($opts['x'] ?? 8);
+    $config = require __DIR__ . '/config/lrc-handicapping.php';
+
+    $logger->info("Step 3: Compute stats for event {$eventId} (x={$x})");
+
+    $processor = new \App\Services\MemberProcessor(getDb(), $logger, $config);
+    $result = $processor->process($eventId, $x);
+
+    $logger->info("Stats computed: {$result['stats']} runners processed");
+    echo "Stats computed for {$result['stats']} runners
+";
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// handicapper:export — export spreadsheet
+// ═══════════════════════════════════════════════════════════════════
+
+function runHandicapperExport(array $args, CliLogger $logger): void
+{
+    $opts = parseOpts($args);
+    $positional = $opts['positional'];
+    if (count($positional) < 1) {
+        fail("Usage: php cli.php handicapper:export <eventId> [--format=xlsx] [--all-divisions] [--gdrive]");
+    }
+    $eventId = (int)$positional[0];
+    $format = $opts['format'] ?? 'xlsx';
+    $allDivisions = isset($opts['all-divisions']);
+    $config = require __DIR__ . '/config/lrc-handicapping.php';
+
+    $logger->info("Step 4: Export spreadsheet for event {$eventId}");
+    $exporter = new \App\Services\SpreadsheetExporter(getDb(), $logger, $config);
+    $localPath = $exporter->export($eventId, $format, 8, $allDivisions);
+    echo "Local file: {$localPath}
+";
+
+    // Upload to Google Drive if --gdrive flag is set
+    if (isset($opts['gdrive'])) {
+        $folderId = getenv('GOOGLE_DRIVE_FOLDER_ID');
+        if (!$folderId) {
+            fail("GOOGLE_DRIVE_FOLDER_ID env var is not set. Cannot upload to Drive.");
+        }
+        $logger->info("Uploading to Google Drive...");
+        $gdrive = new \App\Services\GoogleDriveService();
+        $fileName = basename($localPath);
+        $existingId = $gdrive->findFile($fileName, $folderId);
+        if ($existingId) {
+            $fileId = $gdrive->upload($localPath, $folderId, $existingId);
+            $logger->info("Updated existing Drive file (ID: {$fileId})");
+        } else {
+            $fileId = $gdrive->upload($localPath, $folderId);
+            $logger->info("Created new Drive file (ID: {$fileId})");
+        }
+        echo "Drive file ID: {$fileId}
+";
+        echo "Drive URL: https://drive.google.com/open?id={$fileId}
+";
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// handicapper:import — import edited spreadsheet
+// ═══════════════════════════════════════════════════════════════════
+
+function runHandicapperImport(array $args, CliLogger $logger): void
+{
+    $opts = parseOpts($args);
+    $positional = $opts['positional'];
+    $config = require __DIR__ . '/config/lrc-handicapping.php';
+
+    // Resolve the file path
+    $filePath = null;
+    $eventId = null;
+
+    // Support: handicapper:import <eventId> <file.xlsx>
+    // and: handicapper:import <eventId> --gdrive[=fileId]
+    if (count($positional) >= 2) {
+        $eventId = (int)$positional[0];
+        $filePath = $positional[1];
+    } elseif (count($positional) === 1) {
+        $eventId = (int)$positional[0];
+    }
+
+    if (!$eventId) {
+        fail("Usage: php cli.php handicapper:import <eventId> [<file.xlsx>] [--gdrive[=fileId]]");
+    }
+
+    // Download from Google Drive if --gdrive flag is set
+    if (isset($opts['gdrive'])) {
+        $gdriveFileId = $opts['gdrive'];
+        if ($gdriveFileId === true) {
+            // --gdrive without value: find latest file in the folder
+            $folderId = getenv('GOOGLE_DRIVE_FOLDER_ID');
+            if (!$folderId) {
+                fail("GOOGLE_DRIVE_FOLDER_ID env var is not set.");
+            }
+            $gdrive = new \App\Services\GoogleDriveService();
+            $files = $gdrive->listFiles($folderId);
+            if (empty($files)) {
+                fail("No files found in Drive folder {$folderId}");
+            }
+            // Pick the most recent
+            $gdriveFileId = $files[0]['id'];
+            $logger->info("Selected latest file: {$files[0]['name']} (ID: {$gdriveFileId})");
+        }
+
+        $gdrive = new \App\Services\GoogleDriveService();
+        // Download to a temp path
+        $tmpDir = sys_get_temp_dir() . '/lrc-handicapping';
+        if (!is_dir($tmpDir)) { mkdir($tmpDir, 0755, true); }
+        $tmpPath = $tmpDir . "/event_{$eventId}_imported.xlsx";
+
+        $logger->info("Downloading from Drive file ID: {$gdriveFileId}");
+        $gdrive->download($gdriveFileId, $tmpPath);
+        $filePath = $tmpPath;
+        $logger->info("Downloaded to: {$filePath}");
+    }
+
+    if (!$filePath || !file_exists($filePath)) {
+        fail("File not found: {$filePath}");
+    }
+
+    $logger->info("Step 5: Import handicapping data from {$filePath}");
+
+    $importer = new \App\Services\HandicapImporter(getDb(), $logger, $config);
+    $result = $importer->import($eventId, $filePath);
+
+    echo "Updated: {$result['updated']}
+";
+    echo "Skipped: {$result['skipped']}
+";
+    if (!empty($result['errors'])) {
+        foreach ($result['errors'] as $err) {
+            echo "Error: {$err}
+";
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// handicapper:gdrive:list — list files in Drive folder
+// ═══════════════════════════════════════════════════════════════════
+
+function runHandicapperGdriveList(array $args, CliLogger $logger): void
+{
+    $folderId = getenv('GOOGLE_DRIVE_FOLDER_ID');
+    if (!$folderId) {
+        fail("GOOGLE_DRIVE_FOLDER_ID env var is not set.");
+    }
+
+    $gdrive = new \App\Services\GoogleDriveService();
+    $files = $gdrive->listFiles($folderId);
+
+    if (empty($files)) {
+        echo "No files in Drive folder.
+";
+        return;
+    }
+
+    echo "Files in Google Drive folder:
+";
+    echo str_repeat('-', 80) . "
+";
+    printf("%-40s %-33s %s
+", "Name", "Modified", "File ID");
+    echo str_repeat('-', 80) . "
+";
+    foreach ($files as $f) {
+        $name = $f['name'] ?? '?';
+        $modified = $f['modifiedTime'] ?? '?';
+        $id = $f['id'] ?? '?';
+        if (strlen($name) > 37) $name = substr($name, 0, 34) . '...';
+        printf("%-40s %-33s %s
+", $name, $modified, $id);
+    }
+}

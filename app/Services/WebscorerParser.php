@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-
 namespace App\Services;
 
+use PDO;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 

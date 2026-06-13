@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Services\LastWinCalculator;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\FakePDO;
 
 /**
  * Unit tests for LastWinCalculator.
@@ -18,7 +19,7 @@ class LastWinCalculatorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->db = new \FakePDO();
+        $this->db = new FakePDO();
         $this->calc = new LastWinCalculator($this->db);
         $this->db->setFixtureResolver(function (string $sql): string {
             $u = strtoupper($sql);

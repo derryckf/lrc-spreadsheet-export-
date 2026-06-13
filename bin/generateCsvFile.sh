@@ -40,6 +40,9 @@ fi
 output_file="$path2/$(basename "$file" .txt).csv"
 
 cat "$path1/$file" | \
+# Strip Windows \r and BOM
+	sed 's/\r$//' | \
+	sed '1s/^\xEF\xBB\xBF//' | \
 #fixRegHeader
 	sed 's/.*Bib/tagNo/g'| \
 	sed 's/First name/firstName/g'| \
@@ -61,14 +64,11 @@ cat "$path1/$file" | \
 	sed 's/,//g' | \
 	sed 's/\t/,/g' > "$output_file"
 
-# Call the other script
-#cat "$output_file" | ./cleaner.sh > "$output_file"
-# Check if the cleaner.sh script exists
+# Call the cleaner script if it exists
 if [ -f "$CLEANER_SCRIPT" ]; then
-    # Execute the cleaner.sh script
-    cat "$$output_file" | "$CLEANER_SCRIPT" > "$$output_file"
-else
-    echo "Error: cleaner.sh script not found in $SCRIPT_DIR"
+    # Apply cleaner to the generated CSV in-place via temp file
+    tmp_clean="${output_file}.tmp"
+    cat "$output_file" | "$CLEANER_SCRIPT" > "$tmp_clean" && mv "$tmp_clean" "$output_file"
 fi
 
-exit 1
+exit 0

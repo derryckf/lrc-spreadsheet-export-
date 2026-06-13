@@ -69,7 +69,10 @@ class InteractiveResolver
 
         foreach ($unknowns as $idx => $row) {
             $rowNum = $idx + 2;
-            $this->showUnknownRunner($row, $rowNum, $idx, $stats, $unknowns);
+            $result = $this->showUnknownRunner($row, $rowNum, $idx, $stats, $unknowns);
+            if ($result !== null) {
+                break; // 'A' bulk-approved remaining — stop here
+            }
         }
 
         $this->log("\n─────────────────────────────────────────────────");
@@ -79,7 +82,7 @@ class InteractiveResolver
         return $stats;
     }
 
-    private function showUnknownRunner(array $row, int $rowNum, int $idx, array &$stats, array $allUnknowns): void
+    private function showUnknownRunner(array $row, int $rowNum, int $idx, array &$stats, array $allUnknowns): ?array
     {
         $name = trim(($row['firstName'] ?? '') . ' ' . trim($row['lastName'] ?? ''));
         $dob = trim($row['DOB'] ?? '');
@@ -129,7 +132,7 @@ class InteractiveResolver
                 break;
             case 'A':
                 $this->handleApproveRemaining($row, $idx, $allUnknowns, $stats);
-                return; // remaining handled in bulk
+                return ['bulk' => true, 'processed' => $idx]; // remaining handled in bulk
             case 'Q':
                 $this->log("  → Quitting.");
                 throw new \RuntimeException("USER_QUIT");
@@ -138,6 +141,7 @@ class InteractiveResolver
                 $stats['skipped']++;
                 break;
         }
+        return null; // normal flow: continue to next runner
     }
 
     private function handleMatch(array $row, string $memberIdStr, array &$stats): void
@@ -260,24 +264,26 @@ class InteractiveResolver
         $memberId = (int)$this->db->lastInsertId();
         $this->log(sprintf("  → Created member %d: %s %s", $memberId, $firstName, $lastName));
 
-        // Upsert tagNo
         if ($tagNo !== '') {
-            $tagNoId = $this->upsertTagNo($tagNo);
+            $this->upsertTagNo($tagNo);
         }
-        // Upsert eventEntry
+        $this->creator->upsertEmail($memberId, $email);
+        $this->creator->upsertPhone($memberId, $phone);
         $this->upsertEventEntryOnly($memberId, $row);
         $stats['created']++;
     }
 
     private function handleApproveRemaining(array $startRow, int $startIdx, array $allUnknowns, array &$stats): void
     {
-        $this->log("  → Bulk creating remaining " . (count($unknowns) - $startIdx) . " runner(s) as new members...");
-        for ($i = $startIdx; $i < count($unknowns); $i++) {
-            $row = $unknowns[$i];
+        $this->log("  → Bulk creating remaining " . (count($allUnknowns) - $startIdx) . " runner(s) as new members...");
+        for ($i = $startIdx; $i < count($allUnknowns); $i++) {
+            $row = $allUnknowns[$i];
             $firstName = trim($row['firstName'] ?? '');
             $lastName  = trim($row['lastName'] ?? '');
             $dob       = trim($row['DOB'] ?? '');
             $gender    = strtoupper(substr(trim($row['gender'] ?? 'U'), 0, 1));
+            $email     = trim(strtolower($row['email'] ?? ''));
+            $phone     = trim($row['phone'] ?? '');
             $tagNo     = trim($row['webscorer_tagNo'] ?? '');
 
             $maxRegNo = $this->db->query("SELECT MAX(regNo) FROM member")->fetchColumn();
@@ -295,6 +301,12 @@ class InteractiveResolver
             ]);
             $memberId = (int)$this->db->lastInsertId();
             $this->log(sprintf("  Created: member %d: %s %s", $memberId, $firstName, $lastName));
+
+            if ($tagNo !== '') {
+                $this->upsertTagNo($tagNo);
+            }
+            $this->creator->upsertEmail($memberId, $email);
+            $this->creator->upsertPhone($memberId, $phone);
             $this->upsertEventEntryOnly($memberId, $row);
             $stats['created']++;
         }
@@ -348,7 +360,7 @@ class InteractiveResolver
         } else {
             $this->db->prepare(
                 "INSERT INTO eventEntry (event_id, member_id, tagNo_id, paid, able, createDate, lastModDate)
-                 VALUES (:eventId, :memberId, :tagNoId, :paid, null, NOW(), NOW())"
+                 VALUES (:eventId, :memberId, :tagNoId, :paid, 1, NOW(), NOW())"
             )->execute([
                 'eventId'  => $eventId,
                 'memberId' => $memberId,

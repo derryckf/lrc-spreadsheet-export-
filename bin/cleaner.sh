@@ -32,10 +32,11 @@ sed 's/,Jozina,Goedhart,/,Jozina,Macqueen,/gi'|\
 sed 's/Melissa,Williams,/Melissa,Jessup,/gi'|\
 sed 's/Narelle,Wynwood,/Narelle,Whelan,/gi'|\
 sed 's/,Phil,Gregory,/,Philip,Gregory,/gi'|\
-sed 's/,Collin,Smith,/,Colin,Smith,/gi'|\
-sed 's/,Collin,Sterling-Smith,/,Colin,Smith,/gi'|\
-sed 's/,Col,SterlingSmith,/,Colin,Smith,/gi'|\
-sed 's/,Colin,SterlingSmith,/,Colin,Smith,/gi'|\
+sed 's/,Collin,Smith,/,Col,Smith,/gi'|\
+sed 's/,Collin,Sterling-Smith,/,Col,Smith,/gi'|\
+sed 's/,Col,SterlingSmith,/,Col,Smith,/gi'|\
+sed 's/,Colin,SterlingSmith,/,Col,Smith,/gi'|\
+sed 's/,Colin,Sterling-Smith,/,Col,Smith,/gi'|\
 sed 's/,Kathy,Mils,/,Katherine,Mills,/gi'|\
 sed 's/,Kathy,Mills,/,Katherine,Mills,/gi'|\
 sed "s/,Deb,ORegan,/,Debra,O\'Regan,/gi"|\

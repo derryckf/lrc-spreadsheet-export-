@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace App\Services;
+use PDO;
 
 /**
  * SpreadsheetExporter — matches Inital_example_sheet.xlsx layout:
@@ -182,7 +183,7 @@ if ($format === 'csv') {
             . ' JOIN member m ON ee.member_id = m.id'
             . ' LEFT JOIN tagNo t ON ee.tagNo_id = t.id'
             . ' JOIN event e ON ee.event_id = e.id'
-            . ' WHERE ee.event_id = :eid AND ee.able = 1'
+            . ' WHERE ee.event_id = :eid'
             . ' ORDER BY e.division, ee.startPosition, m.lastName'
         );
         $stmt->execute(['eid' => $eventId]);
@@ -487,7 +488,9 @@ if ($format === 'csv') {
             $startSheetIndex++;
         }
 
-        $ss->setActiveSheetIndex(0); // Open on Participants Long Course (first sheet)
+        if ($ss->getSheetCount() > 0) {
+            $ss->setActiveSheetIndex(0);
+        }
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($ss);
         $writer->setPreCalculateFormulas(false); // fullCalcOnLoad=1: Excel recalculates formulas on open
         $writer->save($path);
@@ -598,7 +601,8 @@ if ($format === 'csv') {
             $s     = $entrySheetName;
 
             // MATCH position for k-th smallest handicap (SMALL = slowest first in pursuit race)
-            $mk = "MATCH(SMALL('{$s}'!L\${$r1}:L\${$r2},{$k}),'{$s}'!L\${$r1}:L\${$r2},0)";
+            // Uses column M (L + ROW()*0.00001 tiebreaker) so identical handicaps sort uniquely
+            $mk = "MATCH(SMALL('{$s}'!M\${$r1}:M\${$r2},{$k}),'{$s}'!M\${$r1}:M\${$r2},0)";
 
             // Col A: First name (entry sheet col C)
             $sheet->getCell("A{$row}")->setValue(
@@ -871,15 +875,37 @@ if ($format === 'csv') {
             $sheet->getCell("K{$dataRow}")->setValue("=J{$dataRow}*C\$2");
             $this->fmtTimeCell("K{$dataRow}", $sheet);
 
-            // Col L: handicap = (slowest expectedTime - this runner's expectedTime) + lift
-            // Pursuit race: slowest runner starts at scratch (0), faster runners start later (+HH:MM:SS)
-            // MAX($K$5:$K$) = slowest expectedTime in field; K{row} = this runner's expectedTime
+            // Col L: handicap = maxTotalTime - totalTime (where totalTime = K + I)
+            // The scratch runner (largest K+I) gets handicap 0 regardless of lift.
+            // Uses helper cell L$3 = MAX(N$5:N$last) where N = K+I (total time).
+            // Column N is a hidden helper: N = K + I.
             $sheet->getCell("L{$dataRow}")->setValue(
-                "=MAX(\$K\$5:\$K\${$lastDataRow})-K{$dataRow}+I{$dataRow}"
+                "=L\$3-N{$dataRow}"
             );
             $this->fmtTimeCell("L{$dataRow}", $sheet);
 
+            // Col N: totalTime = expectedTime + lift (hidden helper for MAX)
+            $sheet->getCell("N{$dataRow}")->setValue(
+                "=K{$dataRow}+I{$dataRow}"
+            );
+            $this->fmtTimeCell("N{$dataRow}", $sheet);
+
+            // Col M: handicap with tiebreaker — L + ROW()*0.00001 for SMALL/MATCH in Start sheets
+            // This breaks ties when multiple runners have identical handicaps (e.g. new members with 0:35:50)
+            $sheet->getCell("M{$dataRow}")->setValue(
+                "=L{$dataRow}" . '+ROW()*0.00001'
+            );
+            $sheet->getStyle("M{$dataRow}")->getNumberFormat()->setFormatCode('0.000000');
+
             $dataRow++;
+        }
+
+        // L3: helper cell — max total time, computed from N column (K+I).
+        // This ensures the scratch runner (largest K+I) always gets handicap 0.
+        // Uses MAX(N) which is a simple range MAX, not an array formula.
+        if ($lastDataRow >= 5) {
+            $sheet->getCell("L3")->setValue("=MAX(\$N\$5:\$N\${$lastDataRow})");
+            $sheet->getStyle('L3')->getNumberFormat()->setFormatCode('[h]:mm:ss');
         }
 
         $sheet->freezePane('A5');

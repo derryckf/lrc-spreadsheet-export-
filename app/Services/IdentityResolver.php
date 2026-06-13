@@ -121,8 +121,8 @@ class IdentityResolver
         $this->logger->info("Resolving identities from: {$csvPath}");
         $this->logger->info("Output manifest: {$manifestPath}");
 
-        // Pre-load tagNo history for all members (for support signal)
-        $tagNoHistory = $this->loadTagNoHistory();
+        // Pre-load tagNo history for all members (for confidence signal + backfill)
+        $tagNoData = $this->loadTagNoHistory();
 
         // Pre-load email history for all members (for support signal)
         $emailHistory = $this->loadEmailHistory();
@@ -153,9 +153,17 @@ class IdentityResolver
         $rowNum = 1; // header is row 1, data starts at row 2
         while (($row = fgetcsv($handle)) !== false) {
             $rowNum++;
+            // Defensive: pad or truncate row to match header count
+            $headerCount = count($headers);
+            $rowCount = count($row);
+            if ($rowCount < $headerCount) {
+                $row = array_pad($row, $headerCount, '');
+            } elseif ($rowCount > $headerCount) {
+                $row = array_slice($row, 0, $headerCount);
+            }
             $data = array_combine($headers, $row);
 
-            $resolved = $this->resolveRow($data, $tagNoHistory, $emailHistory);
+            $resolved = $this->resolveRow($data, $tagNoData, $emailHistory);
 
             fputcsv($out, [
                 $resolved['tmp_id'],
@@ -192,13 +200,13 @@ class IdentityResolver
     /**
      * Resolve a single CSV row against the member table.
      */
-    private function resolveRow(array $data, array $tagNoHistory, array $emailHistory): array
+    private function resolveRow(array $data, array $tagNoData, array $emailHistory): array
     {
         $firstName = $this->normaliseName($data['firstName'] ?? '');
         $lastName  = $this->normaliseName($data['lastName'] ?? '');
         $dob       = $this->parseDob($data['DOB'] ?? '');
         $gender    = strtoupper(substr($data['gender'] ?? '', 0, 1));
-        $tagNo     = trim($data['tagNo'] ?? '');
+        $csvTagNo  = trim($data['tagNo'] ?? '');
         $email     = trim(strtolower($data['email'] ?? ''));
         $tmpId     = 'tmp_' . bin2hex(random_bytes(8));
 
@@ -206,7 +214,7 @@ class IdentityResolver
             return [
                 'tmp_id' => $tmpId,
                 'webscorer_tagNo_conflict' => 'no',
-                'tagNo_resolved' => $tagNo,
+                'tagNo_resolved' => $csvTagNo,
                 'member_id' => $tmpId,
                 'match_type' => 'invalid',
                 'confidence_score' => '0.00',
@@ -222,7 +230,7 @@ class IdentityResolver
             return [
                 'tmp_id' => $tmpId,
                 'webscorer_tagNo_conflict' => 'no',
-                'tagNo_resolved' => $tagNo,
+                'tagNo_resolved' => $csvTagNo,
                 'member_id' => $tmpId,
                 'match_type' => 'new',
                 'confidence_score' => '0.00',
@@ -230,13 +238,23 @@ class IdentityResolver
             ];
         }
 
-        // Score each candidate against match tiers
+        $tagNoHistory = $tagNoData['history'] ?? [];
+
+        // Score each candidate against match tiers.
+        // Tie-breaking priority:
+        //   1. Higher confidence wins (primary)
+        //   2. Higher event_result_count wins (secondary — prefer canonical record with history)
+        //   3. Lower member_id wins (tertiary — deterministic fallback)
         $best = null;
         foreach ($candidates as $memberId => $member) {
-            $score = $this->scoreCandidate($member, $dob, $tagNo, $email, $tagNoHistory, $emailHistory);
-            if ($best === null || $score['confidence'] > $best['confidence']) {
+            $score = $this->scoreCandidate($member, $dob, $csvTagNo, $email, $tagNoHistory, $emailHistory);
+            $score['member_id'] = $memberId;
+            $score['event_result_count'] = (int)($member['event_result_count'] ?? 0);
+            if ($best === null
+                || $score['confidence'] > $best['confidence']
+                || ($score['confidence'] === $best['confidence'] && $score['event_result_count'] > $best['event_result_count'])
+                || ($score['confidence'] === $best['confidence'] && $score['event_result_count'] === $best['event_result_count'] && $memberId < $best['member_id'])) {
                 $best = $score;
-                $best['member_id'] = $memberId;
             }
         }
 
@@ -245,7 +263,7 @@ class IdentityResolver
             return [
                 'tmp_id' => $tmpId,
                 'webscorer_tagNo_conflict' => 'no',
-                'tagNo_resolved' => $tagNo,
+                'tagNo_resolved' => $csvTagNo,
                 'member_id' => $tmpId,
                 'match_type' => 'new',
                 'confidence_score' => '0.00',
@@ -253,19 +271,29 @@ class IdentityResolver
             ];
         }
 
+        // Backfill tagNo from history if CSV has none
+        $resolvedTagNo = $csvTagNo;
+        $lastTagNo = $tagNoData['last'] ?? [];
+        if (($csvTagNo === '' || $csvTagNo === '-') && isset($lastTagNo[$best['member_id']])) {
+            $resolvedTagNo = $lastTagNo[$best['member_id']];
+            $best['notes'] = trim(($best['notes'] ? $best['notes'] . '; ' : '') . 'tagNo backfilled from history: ' . $resolvedTagNo);
+        }
+        $best['tagNo_resolved'] = $resolvedTagNo;
+
         return $best;
     }
 
     /**
      * Find member records matching canonical firstName + lastName.
-     * Returns array: memberId => memberData
+     * Returns array: memberId => memberData (includes event_result_count for tie-breaking)
      */
     private function findCandidates(string $firstName, string $lastName): array
     {
         $sql = "
             SELECT m.id, m.firstName, m.lastName, m.DOB, m.sex,
                    e.emailAddress, ph.number as phone,
-                   tn.tagNo as last_tagNo
+                   tn.tagNo as last_tagNo,
+                   COALESCE(erc.event_result_count, 0) AS event_result_count
             FROM member m
             LEFT JOIN email e ON m.email_id = e.id
             LEFT JOIN phone ph ON m.phone_id = ph.id
@@ -276,7 +304,13 @@ class IdentityResolver
                 JOIN tagNo tn ON ee.tagNo_id = tn.id
                 GROUP BY member_id
             ) tn ON tn.member_id = m.id
+            LEFT JOIN (
+                SELECT member_id, COUNT(*) AS event_result_count
+                FROM eventResult
+                GROUP BY member_id
+            ) erc ON erc.member_id = m.id
             WHERE LOWER(m.firstName) = :first AND LOWER(m.lastName) = :last
+            ORDER BY m.id ASC
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
@@ -286,23 +320,37 @@ class IdentityResolver
 
         $candidates = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $candidates[$row['id']] = $row;
+            // Always use the first (lowest-id) member record for a given name.
+            // All eventResult history has been merged onto this canonical record.
+            // Subsequent duplicates (same name, different DOB) are skipped.
+            if (!isset($candidates[$row['id']])) {
+                $candidates[$row['id']] = $row;
+            }
         }
 
         // Also try reverse: lastName in firstName field and vice versa
         // (handling swapped CSV columns gracefully)
         if (empty($candidates)) {
             $stmt2 = $this->db->prepare("
-                SELECT id, firstName, lastName, DOB, sex, email_id
-                FROM member
-                WHERE LOWER(firstName) = :last AND LOWER(lastName) = :first
+                SELECT m.id, m.firstName, m.lastName, m.DOB, m.sex, m.email_id,
+                       COALESCE(erc.event_result_count, 0) AS event_result_count
+                FROM member m
+                LEFT JOIN (
+                    SELECT member_id, COUNT(*) AS event_result_count
+                    FROM eventResult
+                    GROUP BY member_id
+                ) erc ON erc.member_id = m.id
+                WHERE LOWER(m.firstName) = :last AND LOWER(m.lastName) = :first
+                ORDER BY m.id ASC
             ");
             $stmt2->execute([
                 'first' => strtolower($lastName),
                 'last'  => strtolower($firstName),
             ]);
             while ($row = $stmt2->fetch(PDO::FETCH_ASSOC)) {
-                $candidates[$row['id']] = $row;
+                if (!isset($candidates[$row['id']])) {
+                    $candidates[$row['id']] = $row;
+                }
             }
         }
 
@@ -417,27 +465,55 @@ return [
     }
 
     /**
-     * Load tagNo history per member_id from eventResult join.
-     * Returns: [$memberId => [tagNo, tagNo, ...]]
+     * Load tagNo history per member_id from both eventEntry and eventResult.
+     * Returns: ['history' => [$memberId => [tagNo, ...]], 'last' => [$memberId => tagNo]]
+     *
+     * - history: all unique tagNos per member (for confidence boosting)
+     * - last: most recently used tagNo per member (for backfill when CSV has none)
      */
     private function loadTagNoHistory(): array
     {
         $sql = "
-            SELECT er.member_id, ANY_VALUE(tn.tagNo) as tagNo
-            FROM eventResult er
-            JOIN tagNo tn ON er.tagNo_id = tn.id
-            GROUP BY er.member_id
+            SELECT member_id, tagNo, source_date FROM (
+                SELECT ee.member_id, tn.tagNo, e.eventDate AS source_date
+                FROM eventEntry ee
+                JOIN tagNo tn ON ee.tagNo_id = tn.id
+                JOIN event e ON ee.event_id = e.id
+                WHERE tn.tagNo IS NOT NULL AND tn.tagNo != '' AND tn.tagNo != '-'
+
+                UNION ALL
+
+                SELECT er.member_id, tn.tagNo, e.eventDate AS source_date
+                FROM eventResult er
+                JOIN tagNo tn ON er.tagNo_id = tn.id
+                JOIN event e ON er.event_id = e.id
+                WHERE tn.tagNo IS NOT NULL AND tn.tagNo != '' AND tn.tagNo != '-'
+            ) combined
+            ORDER BY source_date DESC
         ";
         $stmt = $this->db->query($sql);
-        $map = [];
+
+        $history = [];  // memberId => [tagNo, tagNo, ...]
+        $last = [];     // memberId => tagNo (most recent)
+
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $mid = (int)$row['member_id'];
-            if (!isset($map[$mid])) {
-                $map[$mid] = [];
+            $tagNo = trim($row['tagNo']);
+            if ($tagNo === '') { continue; }
+
+            if (!isset($history[$mid])) {
+                $history[$mid] = [];
             }
-            $map[$mid][] = trim($row['tagNo']);
+            if (!in_array($tagNo, $history[$mid], true)) {
+                $history[$mid][] = $tagNo;
+            }
+            // First occurrence is most recent (ORDER BY source_date DESC)
+            if (!isset($last[$mid])) {
+                $last[$mid] = $tagNo;
+            }
         }
-        return $map;
+
+        return ['history' => $history, 'last' => $last];
     }
 
     /**

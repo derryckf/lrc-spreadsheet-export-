@@ -21,3 +21,23 @@ Thumbs.db
 
 # Test outputs
 *.output_file
+
+# Environment / secrets
+.env
+.envsitter/
+
+# OC-KAI project files
+.oc-project-id
+.opencode/
+
+# Registration data (contains PII)
+/registrations/
+
+# Storage: generated CSVs
+/storage/app/handicapping/*.csv
+
+# Misc generated files
+all_pass_runners.txt
+bib_numbers.txt
+csv_to_pdf_start_list.sh
+Inital_example_sheet.xlsx
