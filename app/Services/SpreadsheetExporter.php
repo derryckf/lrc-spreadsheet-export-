@@ -488,6 +488,29 @@ if ($format === 'csv') {
             $startSheetIndex++;
         }
 
+        // Add Combined Short Course + Junior start list
+        $scMembers = $entriesByDiv[2] ?? [];
+        $junMembers = $entriesByDiv[3] ?? [];
+        if (!empty($scMembers) || !empty($junMembers)) {
+            $combinedSheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($ss);
+            $combinedSheet->setTitle("Short+Junior Start");
+            $ss->addSheet($combinedSheet, $startSheetIndex);
+
+            $scEntryName = $divisionNames[2] ?? 'Short Course';
+            $junEntryName = $divisionNames[3] ?? 'Junior';
+            $scFirst = 5;
+            $scLast = 4 + count($scMembers);
+            $junFirst = 5;
+            $junLast = 4 + count($junMembers);
+
+            $this->fillCombinedStartListSheet(
+                $combinedSheet, $scMembers, $junMembers,
+                $scEntryName, $scFirst, $scLast,
+                $junEntryName, $junFirst, $junLast
+            );
+            $startSheetIndex++;
+        }
+
         if ($ss->getSheetCount() > 0) {
             $ss->setActiveSheetIndex(0);
         }
@@ -632,6 +655,140 @@ if ($format === 'csv') {
             // Col H: Handicap = same as Start time (pursuit race: start time = handicap)
             $sheet->getCell("H{$row}")->setValue(
                 "=IFERROR(\"+\"&TEXT(MROUND(INDEX('{$s}'!L\${$r1}:L\${$r2},{$mk}),TIME(0,0,10)),\"[h]:mm:ss\"),\"\")"
+            );
+        }
+
+        $sheet->freezePane('A2');
+    }
+
+    /**
+     * Fill a Combined Short Course + Junior start list sheet.
+     *
+     * Merges runners from both divisions, sorted by start time descending
+     * (slowest/longest handicap first = pursuit race start order).
+     *
+     * Uses helper columns J-L to build a single contiguous range of handicap
+     * values from both entry sheets, then SMALL/MATCH to sort across both:
+     *   Col J: handicap+tiebreaker value (linked from entry sheet column M)
+     *   Col K: source sheet name ("Short Course" or "Junior")
+     *   Col L: row index within that division's entry sheet data range
+     *
+     * Output columns A-H use SMALL(J:J, k) + MATCH to find the k-th smallest,
+     * then IF(colK="SC", pull from SC entry, pull from JUN entry) for each field.
+     */
+    private function fillCombinedStartListSheet(
+        object $sheet,
+        array $scMembers,
+        array $junMembers,
+        string $scEntryName,
+        int $scFirst,
+        int $scLast,
+        string $junEntryName,
+        int $junFirst,
+        int $junLast
+    ): void {
+        $scCount = count($scMembers);
+        $junCount = count($junMembers);
+        $totalRows = $scCount + $junCount;
+
+        if ($totalRows === 0) { return; }
+
+        $s = $scEntryName;
+        $j = $junEntryName;
+        $sR1 = $scFirst;
+        $sR2 = $scLast;
+        $jR1 = $junFirst;
+        $jR2 = $junLast;
+
+        // ── Headers (A-H) ───────────────────────────────────────────────────
+        $headers = ['First name','Last name','Gender','Distance','Category','Bib','Start time','Handicap'];
+        for ($col = 0; $col < 8; $col++) {
+            $sheet->setCellValue($this->colLetter($col + 1) . '1', $headers[$col]);
+        }
+        $sheet->getStyle('A1:H1')->getFont()->setBold(true);
+
+        // ── Helper columns J-L (hidden) ─────────────────────────────────────
+        // Col J: handicap value + GLOBAL tiebreaker (helper row * 1e-7)
+        //        The entry sheet's own ROW()*1e-5 tiebreaker is per-sheet and can
+        //        collide across sheets (same row number in different sheets).
+        //        Adding helper_row*1e-7 guarantees global uniqueness for MATCH.
+        // Col K: source sheet name literal
+        // Col L: position within that division (1,2,3…) → INDEX row into entry data
+
+        // SC runners: helper rows 2..scCount+1
+        for ($i = 0; $i < $scCount; $i++) {
+            $hr = $i + 2;                        // helper row
+            $srcRow = $sR1 + $i;                  // entry sheet data row
+            $sheet->getCell("J{$hr}")->setValue("='{$s}'!L{$srcRow}+{$hr}*0.0000001");
+            $sheet->getCell("K{$hr}")->setValue($s);
+            $sheet->getCell("L{$hr}")->setValue($i + 1);
+        }
+        // JUN runners: helper rows scCount+2..total+1
+        for ($i = 0; $i < $junCount; $i++) {
+            $hr = $scCount + $i + 2;
+            $srcRow = $jR1 + $i;
+            $sheet->getCell("J{$hr}")->setValue("='{$j}'!L{$srcRow}+{$hr}*0.0000001");
+            $sheet->getCell("K{$hr}")->setValue($j);
+            $sheet->getCell("L{$hr}")->setValue($i + 1);
+        }
+
+        $hEnd = $totalRows + 1;  // last helper row
+
+        // Hide helper columns
+        $sheet->getColumnDimension('J')->setVisible(false);
+        $sheet->getColumnDimension('K')->setVisible(false);
+        $sheet->getColumnDimension('L')->setVisible(false);
+
+        // ── Output columns A-H ──────────────────────────────────────────────
+        // For row k (1-based rank), sorted by handicap ascending (SMALL gives
+        // slowest-first because bigger handicap = later start = higher numeric
+        // value in column M; SMALL(k=1) returns the LARGEST value since M stores
+        // negative offset from fastest → actually M stores handicap+seq which
+        // sorts slowest-first by SMALL ascending).
+
+        for ($k = 1; $k <= $totalRows; $k++) {
+            $row = $k + 1;
+
+            // MATCH position in helper range for k-th smallest handicap
+            // Ascending sort: use SMALL to get smallest handicap first
+            $mk = "MATCH(SMALL(\$J\$2:\$J\${$hEnd},{$k}),\$J\$2:\$J\${$hEnd},0)";
+
+            // Source sheet name at that position
+            $src = "INDEX(\$K\$2:\$K\${$hEnd},{$mk})";
+            // Index within that division's entry sheet data range
+            $idx = "INDEX(\$L\$2:\$L\${$hEnd},{$mk})";
+
+            // FirstName: pull from C column of the matching entry sheet
+            $sheet->getCell("A{$row}")->setValue(
+                "=IFERROR(IF({$src}=\"{$s}\",INDEX('{$s}'!C\${$sR1}:C\${$sR2},{$idx}),INDEX('{$j}'!C\${$jR1}:C\${$jR2},{$idx})),\"\")"
+            );
+            // LastName
+            $sheet->getCell("B{$row}")->setValue(
+                "=IFERROR(IF({$src}=\"{$s}\",INDEX('{$s}'!D\${$sR1}:D\${$sR2},{$idx}),INDEX('{$j}'!D\${$jR1}:D\${$jR2},{$idx})),\"\")"
+            );
+            // Gender
+            $sheet->getCell("C{$row}")->setValue(
+                "=IFERROR(IF({$src}=\"{$s}\",INDEX('{$s}'!F\${$sR1}:F\${$sR2},{$idx}),INDEX('{$j}'!F\${$jR1}:F\${$jR2},{$idx})),\"\")"
+            );
+            // Distance: link to entry sheet C2 (the distance cell)
+            $sheet->getCell("D{$row}")->setValue(
+                "=IF({$src}=\"{$s}\",'{$s}'!C2,'{$j}'!C2)"
+            );
+            // Category: just show which division
+            $sheet->getCell("E{$row}")->setValue(
+                "={$src}"
+            );
+            // Bib (tagNo)
+            $sheet->getCell("F{$row}")->setValue(
+                "=IFERROR(IF({$src}=\"{$s}\",INDEX('{$s}'!B\${$sR1}:B\${$sR2},{$idx}),INDEX('{$j}'!B\${$jR1}:B\${$jR2},{$idx})),\"\")"
+            );
+            // Start time: MROUND(handicap, 10sec) formatted as +HH:MM:SS
+            $sheet->getCell("G{$row}")->setValue(
+                "=IFERROR(IF({$src}=\"{$s}\",\"+\"&TEXT(MROUND(INDEX('{$s}'!L\${$sR1}:L\${$sR2},{$idx}),TIME(0,0,10)),\"[h]:mm:ss\"),\"+\"&TEXT(MROUND(INDEX('{$j}'!L\${$jR1}:L\${$jR2},{$idx}),TIME(0,0,10)),\"[h]:mm:ss\")),\"\")"
+            );
+            // Handicap: same as start time for pursuit race
+            $sheet->getCell("H{$row}")->setValue(
+                "=IFERROR(IF({$src}=\"{$s}\",\"+\"&TEXT(MROUND(INDEX('{$s}'!L\${$sR1}:L\${$sR2},{$idx}),TIME(0,0,10)),\"[h]:mm:ss\"),\"+\"&TEXT(MROUND(INDEX('{$j}'!L\${$jR1}:L\${$jR2},{$idx}),TIME(0,0,10)),\"[h]:mm:ss\")),\"\")"
             );
         }
 
@@ -792,11 +949,13 @@ if ($format === 'csv') {
     {
         $partSheetName = "Participants {$divName}";
 
-        // Row 1: event header
-        foreach (['Date', 'Division', 'Distance', 'ID', 'entrants', 'useLift'] as $col => $h) {
+        // Row 1: event header + spread summary labels
+        $h1 = ['Date', 'Division', 'Distance', 'ID', 'entrants', 'useLift',
+               'meanDev', 'sdDev', 'finishSD', 'fieldSpread'];
+        foreach ($h1 as $col => $h) {
             $sheet->setCellValue($this->colLetter($col + 1) . '1', $h);
         }
-        $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:J1')->getFont()->setBold(true);
 
         // Row 2: event data
         $evt = $members[0]['_event'] ?? [];
@@ -821,7 +980,12 @@ if ($format === 'csv') {
         foreach ($colHeaders as $col => $h) {
             $sheet->setCellValue($this->colLetter($col + 1) . '4', $h);
         }
-        $sheet->getStyle('A4:L4')->getFont()->setBold(true);
+        // Spread analysis columns
+        $sheet->setCellValue('O4', 'avgPace');
+        $sheet->setCellValue('P4', 'paceSD');
+        $sheet->setCellValue('Q4', 'expDev');
+        $sheet->setCellValue('R4', 'expFinish');
+        $sheet->getStyle('A4:R4')->getFont()->setBold(true);
 
         // Data rows (starting row 5); last data row = 5 + member_count - 1
         $memberCount = count($members);
@@ -897,6 +1061,27 @@ if ($format === 'csv') {
             );
             $sheet->getStyle("M{$dataRow}")->getNumberFormat()->setFormatCode('0.000000');
 
+            // Col O: avgPace — runner's average pace from Participants stats (unbiased estimator)
+            // I{firstHistRow+8} = avgPace in the Participants block
+            $sheet->getCell("O{$dataRow}")->setValue("='{$p}'!I" . ($fr + 8));
+            $this->fmtTimeCell("O{$dataRow}", $sheet);
+
+            // Col P: paceSD — runner's pace standard deviation from Participants stats
+            // G{firstHistRow+9} = stdDev in the Participants block
+            $sheet->getCell("P{$dataRow}")->setValue("='{$p}'!G" . ($fr + 9));
+            $this->fmtTimeCell("P{$dataRow}", $sheet);
+
+            // Col Q: expDev = (avgPace - expectedPace) × distance
+            // Method-adjusted bias: how far the actual finish is likely to drift from the
+            // prediction. Zero when method=avg; positive when method=fastest (runner likely slower).
+            $sheet->getCell("Q{$dataRow}")->setValue("=(O{$dataRow}-J{$dataRow})*C\$2");
+            $this->fmtTimeCell("Q{$dataRow}", $sheet);
+
+            // Col R: expFinish = avgPace × distance (hidden helper for finishSD)
+            // Best unbiased estimate of actual finish time, invariant to handicapping method.
+            $sheet->getCell("R{$dataRow}")->setValue("=O{$dataRow}*C\$2");
+            $this->fmtTimeCell("R{$dataRow}", $sheet);
+
             $dataRow++;
         }
 
@@ -906,7 +1091,41 @@ if ($format === 'csv') {
         if ($lastDataRow >= 5) {
             $sheet->getCell("L3")->setValue("=MAX(\$N\$5:\$N\${$lastDataRow})");
             $sheet->getStyle('L3')->getNumberFormat()->setFormatCode('[h]:mm:ss');
+
+            // Spread summary cells (row 2, cols G-I):
+            // G2 meanDev:  average expected deviation from current predictions across the field.
+            //              High when using fastest pace (all runners biased low); ~0 when using avg.
+            // H2 sdDev:    SD of expected deviations — how unevenly the bias is distributed.
+            //              High = some runners have much more uncertainty than others.
+            // I2 finishSD: SD of expected actual finish times (avgPace × distance).
+            //              Method-independent — the true field spread. Doesn't change when you
+            //              switch handicapping method, only meanDev/sdDev do.
+            $sheet->getCell('G2')->setValue("=AVERAGE(Q5:Q{$lastDataRow})");
+            $this->fmtTimeCell('G2', $sheet);
+
+            $sheet->getCell('H2')->setValue("=STDEV(Q5:Q{$lastDataRow})");
+            $this->fmtTimeCell('H2', $sheet);
+
+            $sheet->getCell('I2')->setValue("=STDEV(R5:R{$lastDataRow})");
+            $this->fmtTimeCell('I2', $sheet);
+
+            // J2 fieldSpread: total estimated finish time spread across the field.
+            // By the law of total variance:
+            //   fieldSpread = SQRT(systematic_bias² + mean(individual_uncertainty²))
+            //   = SQRT(sdDev² + mean((paceSD × distance)²))
+            // sdDev (H2) captures the bias from using a non-centered pace method (e.g. fastest).
+            // SUMSQ(P) × distance² / N gives the mean squared individual uncertainty.
+            // In a perfectly handicapped race with avg pace, sdDev=0 and fieldSpread
+            // reduces to RMS(paceSD × distance) — the minimum achievable spread.
+            $sheet->getCell('J2')->setValue(
+                "=SQRT(H2^2+SUMSQ(P5:P{$lastDataRow})*C\$2^2/E\$2)"
+            );
+            $this->fmtTimeCell('J2', $sheet);
         }
+
+        // Hide helper columns N (totalTime) and R (expFinish)
+        $sheet->getColumnDimension('N')->setVisible(false);
+        $sheet->getColumnDimension('R')->setVisible(false);
 
         $sheet->freezePane('A5');
     }
