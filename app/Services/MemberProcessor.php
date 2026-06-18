@@ -99,10 +99,13 @@ class MemberProcessor
             $history = $this->statsCalc->collectHistory($memberId, $eventId, $targetDistance, $x);
             $this->logger->info("  history at similar distance: " . count($history) . " records");
 
-            // If not enough records, expand to any distance
-            if (count($history) < $x) {
-                $history = $this->statsCalc->collectHistory($memberId, $eventId, 999, $x); // very wide window = any distance
-                $this->logger->info("  history expanded (any dist): " . count($history) . " records");
+            // If not enough records, try expanding to any distance — only replace if results found
+            if (count($history) < $x && count($history) > 0) {
+                $expanded = $this->statsCalc->collectHistory($memberId, $eventId, 999, $x); // very wide window = any distance
+                $this->logger->info("  history expanded (any dist): " . count($expanded) . " records");
+                if (!empty($expanded)) {
+                    $history = $expanded;
+                }
             }
 
             if (empty($history)) {
