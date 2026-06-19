@@ -173,54 +173,33 @@ class LastWinCalculator
      */
     private function lastShortCourseWinDate(int $memberId, \DateTime $beforeDate): ?\DateTime
     {
+        // Single query: find most recent Division 2 event where the member's
+        // time equals the fastest time for their rank in that event.
+        // TIME() ensures proper time-string comparison.
         $sql = "
-            SELECT er.event_id, er.rank, er.time as member_time, e.eventDate
+            SELECT e.eventDate
             FROM eventResult er
             JOIN event e ON er.event_id = e.id
             WHERE er.member_id = :mid
               AND e.division = 2
               AND e.eventDate <= :beforeDate
+              AND er.time = (
+                  SELECT MIN(er2.time)
+                  FROM eventResult er2
+                  WHERE er2.event_id = er.event_id
+                    AND er2.rank = er.rank
+              )
             ORDER BY e.eventDate DESC
+            LIMIT 1
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'mid'       => $memberId,
             'beforeDate' => $beforeDate->format('Y-m-d'),
         ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $latestScWinDate = null;
-        foreach ($rows as $row) {
-            // Find fastest time for this rank in this event (among all members)
-            $fastestSql = "
-                SELECT MIN(er.time)
-                FROM eventResult er
-                JOIN event e ON er.event_id = e.id
-                WHERE er.event_id = :eventId
-                  AND er.rank = :rank
-            ";
-            $fastStmt = $this->db->prepare($fastestSql);
-            $fastStmt->execute([
-                'eventId' => $row['event_id'],
-                'rank'    => $row['rank'],
-            ]);
-            $fastestTime = $fastStmt->fetchColumn();
-
-            // Normalise both times to seconds for comparison
-            $memberSec = $this->timeToSec($row['member_time']);
-            $fastestSec = $this->timeToSec($fastestTime);
-
-            // Must be an exact match (member's time IS the fastest for their rank)
-            if ($memberSec !== null && $fastestSec !== null && $memberSec === $fastestSec) {
-                $eventDate = new \DateTime($row['eventDate']);
-                if ($latestScWinDate === null || $eventDate > $latestScWinDate) {
-                    $latestScWinDate = $eventDate;
-                }
-            }
-        }
-
-        return $latestScWinDate;
+        return $row ? new \DateTime($row['eventDate']) : null;
     }
 
     /**
