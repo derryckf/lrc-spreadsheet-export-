@@ -275,19 +275,27 @@ class MemberStatsComputer
             return count($filtered) > 0 ? (int)round(array_sum($filtered) / count($filtered)) : 300;
         }
 
+        // MLR needs variation in distance; identical distances produce a singular matrix
+        $uniqueDistances = array_unique(array_map(fn($r) => (float)$r['distance'], $records));
+        if (count($uniqueDistances) < 2) {
+            return count($filtered) > 0 ? (int)round(array_sum($filtered) / count($filtered)) : 300;
+        }
+
         // Build sample/target arrays for Phpml
+        // samples: [[distance1], [distance2], ...]
+        // targets: [paceSec1, paceSec2, ...]
         $sampleData = [];
         $targetData = [];
         foreach ($records as $rec) {
-            $sampleData[] = [$rec['distance']];
-            $targetData[] = [$rec['paceSec']];
+            $sampleData[] = [(float)$rec['distance']];
+            $targetData[] = (float)$rec['paceSec'];
         }
 
         try {
             $regression = new \Phpml\Regression\LeastSquares();
             $regression->train($sampleData, $targetData);
-            $predicted = $regression->predict([$targetDistance]);
-            $predictedPace = (int)round($predicted[0]);
+            $predicted = $regression->predict([[$targetDistance]]);
+            $predictedPace = is_array($predicted) ? (int)round($predicted[0]) : (int)round($predicted);
             return max(120, $predictedPace); // sanity floor
         } catch (\Throwable $e) {
             $this->logger()->warning('MLR regression failed: ' . $e->getMessage());
