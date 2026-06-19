@@ -16,7 +16,8 @@ if (is_readable(__DIR__ . '/../.env')) {
         if ($line === '' || $line[0] === '#') continue;
         if (strpos($line, '=') !== false) {
             putenv($line);
-            $_ENV += parse_ini_string($line) ?: [];
+            $parts = explode('=', $line, 2);
+            $_ENV[$parts[0]] = $parts[1];
         }
     }
 }

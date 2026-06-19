@@ -56,10 +56,15 @@ class MemberStatsComputer
      * @param int $x  Number of records to collect
      * @return array[]  Rows: {eventDate, distance, actual, pace, venue}
      */
-    public function collectHistory(int $memberId, int $eventId, float $targetDistance, int $x): array
+    public function collectHistory(int $memberId, int $eventId, float $targetDistance, int $x, bool $anyDistance = false): array
     {
-        $lower = max(0.5, $targetDistance - $this->config['distance_window']);
-        $upper = $targetDistance + $this->config['distance_window'];
+        if ($anyDistance) {
+            $lower = 0.0;
+            $upper = 9999.0;
+        } else {
+            $lower = max(0.5, $targetDistance - $this->config['distance_window']);
+            $upper = $targetDistance + $this->config['distance_window'];
+        }
 
         // actual = er.time (HH:MM:SS string, the runner's finish time)
         // pace = er.pace (seconds per km, pre-computed)
@@ -111,7 +116,7 @@ class MemberStatsComputer
      *     historyUsed: int
      * }
      */
-    public function computeStats(array $history, float $targetDistance): array
+    public function computeStats(array $history, float $targetDistance, ?\DateTime $eventDate = null): array
     {
         $stdDist = $this->config['std_distance'];
 
@@ -174,7 +179,7 @@ class MemberStatsComputer
         $avgPace     = (int)round($meanF);
 
         // LSF pace
-        $lsfResult = $this->computeLsf($records, $filtered, $targetDistance, $stdDist);
+        $lsfResult = $this->computeLsf($records, $filtered, $targetDistance, $stdDist, $eventDate);
         $lsfPace = $lsfResult['pace'];
         $lsfSlope = $lsfResult['slope'];
 
@@ -211,7 +216,7 @@ class MemberStatsComputer
      * LSF pace using windowed linear regression on normalised paces.
      * Sorts records by date, builds (days_offset, pace) pairs, extrapolates.
      */
-    private function computeLsf(array $records, array $filtered, float $targetDistance, float $stdDist): array
+    private function computeLsf(array $records, array $filtered, float $targetDistance, float $stdDist, ?\DateTime $eventDate = null): array
     {
         if (count($records) < 2) {
             $avg = count($filtered) > 0 ? (int)round(array_sum($filtered) / count($filtered)) : 300;
@@ -227,10 +232,11 @@ class MemberStatsComputer
         $lastDate  = end($records)['eventDate'];
 
         foreach ($records as $rec) {
-            // Normalise pace to stdDist using Riegel formula
-            $normPace = RaceTimeNormalizer::getNormalizedTime($rec['paceSec'], $rec['distance'], $stdDist);
+            // Use raw pace vs. date; LSF captures fitness trend over time at the
+            // distances the runner actually raced. Normalising paces across wildly
+            // different distances (1.5km vs 8km) makes the regression unstable.
             $days = (int)$firstDate->diff($rec['eventDate'])->days;
-            $lr->add($days, (float)$normPace);
+            $lr->add($days, (float)$rec['paceSec']);
         }
 
         $result = $lr->linear_regression();
@@ -242,10 +248,19 @@ class MemberStatsComputer
             return ['pace' => $avg, 'slope' => 0.0];
         }
 
-        $daysAtEnd = (int)$firstDate->diff($lastDate)->days;
-        $extrapolatedNormPace = $slope * $daysAtEnd + $intercept;
-        $expectedSec = RaceTimeNormalizer::getExpectedTime($targetDistance, $extrapolatedNormPace, $stdDist);
-        $pace = (int)round($expectedSec / $targetDistance);
+        // Extrapolate to event date (or last history date if no event date given)
+        $extrapolateTo = $eventDate ?? $lastDate;
+        $daysAtEnd = (int)$firstDate->diff($extrapolateTo)->days;
+        $pace = (int)round($slope * $daysAtEnd + $intercept);
+
+        // Sanity check: if extrapolated pace is way outside observed range, fall back to average
+        $minObserved = min(array_column($records, 'paceSec'));
+        $maxObserved = max(array_column($records, 'paceSec'));
+        $margin = 0.25; // allow 25% outside observed range
+        if ($pace < $minObserved * (1 - $margin) || $pace > $maxObserved * (1 + $margin)) {
+            $avg = count($filtered) > 0 ? (int)round(array_sum($filtered) / count($filtered)) : 300;
+            return ['pace' => $avg, 'slope' => 0.0];
+        }
 
         return ['pace' => $pace, 'slope' => $slope];
     }

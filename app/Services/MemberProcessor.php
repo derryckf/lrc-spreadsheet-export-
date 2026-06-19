@@ -100,8 +100,8 @@ class MemberProcessor
             $this->logger->info("  history at similar distance: " . count($history) . " records");
 
             // If not enough records, try expanding to any distance — only replace if results found
-            if (count($history) < $x && count($history) > 0) {
-                $expanded = $this->statsCalc->collectHistory($memberId, $eventId, 999, $x); // very wide window = any distance
+            if (count($history) < $x) {
+                $expanded = $this->statsCalc->collectHistory($memberId, $eventId, $targetDistance, $x, true); // any distance
                 $this->logger->info("  history expanded (any dist): " . count($expanded) . " records");
                 if (!empty($expanded)) {
                     $history = $expanded;
@@ -113,7 +113,7 @@ class MemberProcessor
             }
 
 // Compute stats
-            $paceStats = $this->statsCalc->computeStats($history, $targetDistance);
+            $paceStats = $this->statsCalc->computeStats($history, $targetDistance, $eventDate);
             $this->logger->info("  fastestPace={$paceStats['fastestPace']} avgPace={$paceStats['avgPace']} lsfPace={$paceStats['lsfPace']} mlrPace={$paceStats['mlrPace']} method={$paceStats['method']}");
 
             // Write member JSON working file

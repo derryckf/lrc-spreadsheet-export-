@@ -42,3 +42,6 @@ bib_numbers.txt
 csv_to_pdf_start_list.sh
 Inital_example_sheet.xlsx
 .config/google_client.json
+
+# Database backups (contain PII)
+/backups/
