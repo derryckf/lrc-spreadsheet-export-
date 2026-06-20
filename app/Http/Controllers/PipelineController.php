@@ -255,7 +255,7 @@ class PipelineController extends Controller
 
         if ($distIdx !== false) {
             while (($row = fgetcsv($handle)) !== false) {
-                $d = trim($row[$distIdx] ?? '');
+                $d = trim(preg_replace('/km$/i', '', $row[$distIdx] ?? ''));
                 if ($d !== '' && is_numeric($d)) {
                     $distances[(float)$d] = true;
                 }

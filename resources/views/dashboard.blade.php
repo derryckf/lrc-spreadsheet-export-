@@ -255,8 +255,9 @@
     <i class="close icon"></i>
     <div class="header">
         <span id="events-modal-title">Browse Events</span>
-        <div class="ui right floated small action input" style="margin-left:auto">
-            <input type="text" id="event-search-q" placeholder="Venue or date..." onkeyup="searchEvents(event)">
+        <div class="ui right floated small action input" style="margin-left:auto;width:320px">
+            <input type="date" id="event-search-date" style="width:130px" onchange="searchEvents(event)" placeholder="Date">
+            <input type="text" id="event-search-q" placeholder="Venue..." onkeyup="searchEvents(event)" style="width:130px">
             <select class="ui compact dropdown" id="event-search-div" onchange="searchEvents(event)" style="min-width:5em">
                 <option value="">All divs</option>
                 <option value="1">Div 1</option>
@@ -500,24 +501,25 @@ var _eventBrowserTarget = null; // 'long', 'short', or 'junior'
 
 function openEventBrowser(target) {
     _eventBrowserTarget = target;
-    var title = target === 'long' ? 'Long Course Events' : target === 'short' ? 'Short Course Events' : 'Junior Events';
+    var title = target === 'long' ? 'Long Course Events' : target === 'short' ? 'Short Course Events' : target === 'junior' ? 'Junior Events' : 'Browse Events';
     $('#events-modal-title').text(title);
     $('#event-search-q').val('');
+    $('#event-search-date').val('');
     $('#event-search-div').val('');
     $('#events-modal').modal('show');
-    searchEvents();
+    fetchEvents();
 }
 
-function searchEvents(e) {
-    if (e && e.key && e.key !== 'Enter' && e.target.id !== 'event-search-div') return;
+function fetchEvents() {
+    $('#events-modal-body').html('<tr><td colspan="7" class="center aligned">Loading...</td></tr>');
     var q = $('#event-search-q').val().trim();
+    var date = $('#event-search-date').val();
     var div = $('#event-search-div').val();
-    var url = '/api/events';
     var params = [];
     if (q) params.push('q=' + encodeURIComponent(q));
+    if (date) params.push('date=' + encodeURIComponent(date));
     if (div) params.push('division=' + encodeURIComponent(div));
-    if (params.length) url += '?' + params.join('&');
-    $('#events-modal-body').html('<tr><td colspan="7" class="center aligned">Loading...</td></tr>');
+    var url = '/api/events' + (params.length ? '?' + params.join('&') : '');
     $.getJSON(url, function(resp) {
         if (resp.error) {
             $('#events-modal-body').html('<tr><td colspan="7" class="red text">Error: ' + escapeHtml(resp.error) + '</td></tr>');
@@ -527,6 +529,12 @@ function searchEvents(e) {
     }).fail(function() {
         $('#events-modal-body').html('<tr><td colspan="7" class="red text">Failed to load events.</td></tr>');
     });
+}
+
+function searchEvents(e) {
+    // Trigger on Enter key in text fields, or any change in dropdowns/date
+    if (e && e.key && e.key !== 'Enter' && e.target.id !== 'event-search-date' && e.type !== 'change') return;
+    fetchEvents();
 }
 
 function renderEventRows(events) {
