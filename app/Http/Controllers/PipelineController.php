@@ -183,11 +183,112 @@ class PipelineController extends Controller
     }
 
     /**
-     * List recent events (for dropdowns/reference).
+     * Search/list events — GET /api/events?q=&date=&division=
      */
-    public function events(): JsonResponse
+    public function events(Request $request): JsonResponse
     {
-        return response()->json($this->getRecentEvents(20));
+        $q        = $request->input('q', '');
+        $date     = $request->input('date', '');
+        $division = $request->input('division', '');
+
+        try {
+            $sql = <<<'SQL'
+                SELECT e.id, e.eventDate, e.division, e.distance, v.name AS venue,
+                       (SELECT COUNT(*) FROM eventEntry ee WHERE ee.event_id = e.id) AS entries
+                FROM event e
+                LEFT JOIN venue v ON e.venue_id = v.id
+                WHERE 1=1
+            SQL;
+            $bindings = [];
+
+            if ($q !== '') {
+                $sql .= " AND (v.name LIKE ? OR e.eventDate LIKE ?)";
+                $bindings[] = "%{$q}%";
+                $bindings[] = "%{$q}%";
+            }
+            if ($date !== '') {
+                $sql .= " AND e.eventDate = ?";
+                $bindings[] = $date;
+            }
+            if ($division !== '') {
+                $sql .= " AND e.division = ?";
+                $bindings[] = (int) $division;
+            }
+
+            $sql .= " ORDER BY e.eventDate DESC, e.division LIMIT 50";
+
+            $events = DB::select($sql, $bindings);
+            return response()->json(['events' => $events]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Auto-detect events from a parsed CSV — POST /api/events/auto-detect
+     * Reads the CSV's distance column, matches against event distances.
+     */
+    public function autoDetectEvents(Request $request): JsonResponse
+    {
+        $csvPath = $request->input('csv_path', '');
+        if (!$csvPath) {
+            return response()->json(['error' => 'csv_path is required'], 422);
+        }
+
+        $fullPath = base_path($csvPath);
+        if (!file_exists($fullPath)) {
+            return response()->json(['error' => 'CSV not found: ' . $csvPath], 404);
+        }
+
+        // Read unique distances from the CSV (assumes Distance column exists)
+        $distances = [];
+        $handle = fopen($fullPath, 'r');
+        if (!$handle) {
+            return response()->json(['error' => 'Cannot open CSV'], 500);
+        }
+
+        $header = fgetrow($handle);
+        $distIdx = array_search('Distance', $header);
+        if ($distIdx === false) {
+            $distIdx = array_search('distance', $header);
+        }
+
+        if ($distIdx !== false) {
+            while (($row = fgetrow($handle)) !== false) {
+                $d = trim($row[$distIdx] ?? '');
+                if ($d !== '' && is_numeric($d)) {
+                    $distances[(float)$d] = true;
+                }
+            }
+        }
+        fclose($handle);
+
+        if (empty($distances)) {
+            return response()->json(['error' => 'No distances found in CSV'], 422);
+        }
+
+        $distanceKeys = array_keys($distances);
+
+        // Query events matching those distances, most recent first
+        try {
+            $placeholders = implode(',', array_fill(0, count($distanceKeys), '?'));
+            $events = DB::select("
+                SELECT e.id, e.eventDate, e.division, e.distance, v.name AS venue,
+                       (SELECT COUNT(*) FROM eventEntry ee WHERE ee.event_id = e.id) AS entries
+                FROM event e
+                LEFT JOIN venue v ON e.venue_id = v.id
+                WHERE e.distance IN ({$placeholders})
+                ORDER BY e.eventDate DESC
+                LIMIT 20
+            ", $distanceKeys);
+
+            return response()->json([
+                'distances' => $distanceKeys,
+                'events'    => $events,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     /**

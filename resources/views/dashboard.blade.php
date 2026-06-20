@@ -11,8 +11,8 @@
             <i class="stopwatch icon"></i>
             <div class="content">LRC Handicapping Pipeline</div>
         </h1>
-        <div class="ui right floated basic button" onclick="$('#events-modal').modal('show');">
-            <i class="list icon"></i> Recent Events
+        <div class="ui right floated basic button" onclick="openEventBrowser(null);">
+            <i class="list icon"></i> Browse Events
         </div>
     </div>
 </div>
@@ -82,28 +82,68 @@
     <div class="phase-panel" id="panel-2" style="display:none">
         <h3 class="ui header"><i class="address book icon"></i> Resolve Identities</h3>
         <div class="ui message info">
-            <p>Run once per event/division. MemberCreator uses the <b>event distance</b>, not the CSV distance.</p>
+            <p>Run once per event/division. MemberCreator uses the <b>event distance</b>, not the CSV distance. Split the parsed CSV by distance first, then resolve each.</p>
         </div>
         <div class="ui form">
-            <div class="three fields">
-                <div class="field">
-                    <label>Event ID</label>
-                    <input type="number" id="resolve-event-id" placeholder="e.g. 1871">
+            <div class="ui secondary menu" style="margin-bottom:1rem">
+                <div class="item" style="padding-left:0">
+                    <button class="ui tiny primary button" id="btn-auto-detect" onclick="autoDetectResolve()">
+                        <i class="magic icon"></i> Auto-detect
+                    </button>
                 </div>
-                <div class="field">
-                    <label>CSV File</label>
-                    <input type="text" id="resolve-csv" placeholder="path/to/long_course.csv">
-                </div>
-                <div class="field">
-                    <label>Mode</label>
-                    <select class="ui dropdown" id="resolve-mode">
-                        <option value="skip">Skip unknowns</option>
-                        <option value="interactive">Interactive</option>
-                    </select>
+                <div class="item">
+                    <button class="ui tiny basic button" onclick="openEventBrowser('long')">
+                        <i class="search icon"></i> Browse Events
+                    </button>
                 </div>
             </div>
+            <input type="hidden" id="resolve-csv-path" value="">
+            <div class="three fields">
+                <div class="field">
+                    <label>Long Course Event ID</label>
+                    <div class="ui action input">
+                        <input type="number" id="resolve-event-long" placeholder="e.g. 1871">
+                        <button class="ui icon button" onclick="openEventBrowser('long')" tabindex="-1"><i class="search icon"></i></button>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Short Course Event ID</label>
+                    <div class="ui action input">
+                        <input type="number" id="resolve-event-short" placeholder="e.g. 1872">
+                        <button class="ui icon button" onclick="openEventBrowser('short')" tabindex="-1"><i class="search icon"></i></button>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Junior Event ID</label>
+                    <div class="ui action input">
+                        <input type="number" id="resolve-event-junior" placeholder="e.g. 1873">
+                        <button class="ui icon button" onclick="openEventBrowser('junior')" tabindex="-1"><i class="search icon"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="three fields">
+                <div class="field">
+                    <label>Long Course CSV</label>
+                    <input type="text" id="resolve-csv-long" placeholder="handicapping/name_long.csv">
+                </div>
+                <div class="field">
+                    <label>Short Course CSV</label>
+                    <input type="text" id="resolve-csv-short" placeholder="handicapping/name_short.csv">
+                </div>
+                <div class="field">
+                    <label>Junior CSV</label>
+                    <input type="text" id="resolve-csv-junior" placeholder="handicapping/name_junior.csv">
+                </div>
+            </div>
+            <div class="field" style="margin-top:0.5rem">
+                <label style="display:inline;margin-right:1rem">Mode</label>
+                <select class="ui dropdown" id="resolve-mode" style="display:inline-block;width:auto">
+                    <option value="skip">Skip unknowns</option>
+                    <option value="interactive">Interactive</option>
+                </select>
+            </div>
             <button class="ui primary button run-btn" data-endpoint="/run/resolve" data-phase="2">
-                <i class="play icon"></i> Resolve
+                <i class="play icon"></i> Resolve Long Course
             </button>
         </div>
     </div>
@@ -213,23 +253,26 @@
 {{-- ═══ Events Modal ═══ --}}
 <div class="ui modal" id="events-modal">
     <i class="close icon"></i>
-    <div class="header">Recent Events</div>
-    <div class="content">
+    <div class="header">
+        <span id="events-modal-title">Browse Events</span>
+        <div class="ui right floated small action input" style="margin-left:auto">
+            <input type="text" id="event-search-q" placeholder="Venue or date..." onkeyup="searchEvents(event)">
+            <select class="ui compact dropdown" id="event-search-div" onchange="searchEvents(event)" style="min-width:5em">
+                <option value="">All divs</option>
+                <option value="1">Div 1</option>
+                <option value="2">Div 2</option>
+                <option value="3">Div 3</option>
+            </select>
+            <button class="ui button" onclick="searchEvents(event)"><i class="search icon"></i></button>
+        </div>
+    </div>
+    <div class="content" style="max-height:70vh;overflow-y:auto">
         <table class="ui celled striped table">
             <thead>
-                <tr><th>ID</th><th>Date</th><th>Div</th><th>Distance</th><th>Venue</th><th>Entries</th></tr>
+                <tr><th>ID</th><th>Date</th><th>Div</th><th>Distance</th><th>Venue</th><th>Entries</th><th></th></tr>
             </thead>
-            <tbody>
-                @foreach($events as $ev)
-                <tr class="event-row" onclick="lookupEntries({{ $ev->id }})">
-                    <td>{{ $ev->id }}</td>
-                    <td>{{ $ev->eventDate }}</td>
-                    <td>{{ $ev->division }}</td>
-                    <td>{{ $ev->distance }}km</td>
-                    <td>{{ $ev->venue ?? '—' }}</td>
-                    <td>{{ $ev->entries ?? 0 }}</td>
-                </tr>
-                @endforeach
+            <tbody id="events-modal-body">
+                <tr><td colspan="7" class="center aligned">Loading...</td></tr>
             </tbody>
         </table>
     </div>
@@ -263,6 +306,14 @@ $(function() {
 
         var $btn = $(this);
         $btn.addClass('loading disabled');
+
+        // Phase 2 returns an array of resolve operations — chain them
+        if (phase == 2 && Array.isArray(result)) {
+            chainResolveOperations(result, $btn);
+            return;
+        }
+
+        $btn.addClass('loading disabled');
         appendConsole('$ Running phase ' + phase + '...', 'debug');
 
         var ajaxOpts = {
@@ -286,6 +337,24 @@ $(function() {
             appendConsole('$ Exit code: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
             if (resp.exit_code === 0) {
                 $btn.closest('.phase-panel').find('.ui.header').append('<i class="green check icon"></i>');
+                // Store CSV path for auto-detect (phase 1 only)
+                if (phase == 1 && resp.output) {
+                    var m = resp.output.match(/Output CSV: (.+)/);
+                    if (m) {
+                        // Convert absolute path to relative from project root
+                        var abs = m[1].trim();
+                        var base = window.location.origin + window.location.pathname.replace(/\/$/, '');
+                        // Store as relative path from project root
+                        var rel = abs.replace(/^.*?\/storage\/app\//, 'storage/app/');
+                        $('#resolve-csv-path').val(rel);
+                        // Also pre-fill parse name if blank
+                        if (!$('#parse-name').val() && m[1]) {
+                            var fname = m[1].split('/').pop().replace('.csv', '');
+                            // keep name as-is
+                        }
+                        appendConsole('$ CSV stored for auto-detect: ' + rel, 'debug');
+                    }
+                }
             }
         }).fail(function(xhr) {
             appendConsole('AJAX error: ' + (xhr.responseText || 'unknown'), 'error');
@@ -299,7 +368,6 @@ function collectFormData(phase) {
     switch(phase) {
         case 1:
             var parseMode = $('#parse-tabs .active.item').data('tab');
-            // Determine which file input to use based on active tab
             var fileInput = (parseMode === 'upload') ? $('#parse-upload')[0] : $('#parse-file')[0];
             if (!fileInput.files[0]) {
                 alert('Select a file first');
@@ -310,8 +378,20 @@ function collectFormData(phase) {
             formData.append('name', $('#parse-name').val());
             return formData;
         case 2:
-            if (!$('#resolve-event-id').val() || !$('#resolve-csv').val()) { alert('Enter event ID and CSV path'); return null; }
-            return { event_id: $('#resolve-event-id').val(), csv: $('#resolve-csv').val(), mode: $('#resolve-mode').val() };
+            // Collect all 3 resolve operations; each must have event_id + csv
+            var longId = $('#resolve-event-long').val();
+            var shortId = $('#resolve-event-short').val();
+            var juniorId = $('#resolve-event-junior').val();
+            var longCsv = $('#resolve-csv-long').val();
+            var shortCsv = $('#resolve-csv-short').val();
+            var mode = $('#resolve-mode').val();
+            // Return array of {event_id, csv, mode} for chained execution
+            var ops = [];
+            if (longId && longCsv) ops.push({ event_id: longId, csv: longCsv, mode: mode, label: 'Long Course' });
+            if (shortId && shortCsv) ops.push({ event_id: shortId, csv: shortCsv, mode: mode, label: 'Short Course' });
+            if (juniorId && $('#resolve-csv-junior').val()) ops.push({ event_id: juniorId, csv: $('#resolve-csv-junior').val(), mode: mode, label: 'Junior' });
+            if (ops.length === 0) { alert('Fill in at least one event ID + CSV pair'); return null; }
+            return ops;
         case 3:
             if (!$('#inject-event-ids').val()) { alert('Enter event IDs'); return null; }
             return { event_ids: $('#inject-event-ids').val(), season: $('#inject-season').val() };
@@ -381,6 +461,178 @@ function lookupEntries(eventId) {
 function escapeHtml(s) {
     return s.replace(/[&<>"']/g, function(c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+}
+
+// ─── Chain resolve operations ─────────────────────────────────────────────────
+
+function chainResolveOperations(ops, $btn) {
+    appendConsole('$ Running ' + ops.length + ' resolve operation(s)...', 'debug');
+    (function next() {
+        if (ops.length === 0) {
+            appendConsole('$ All resolve operations complete.', 'info');
+            $btn.removeClass('loading disabled');
+            return;
+        }
+        var op = ops.shift();
+        appendConsole('$ Resolving ' + op.label + ' (event ' + op.event_id + ')...', 'debug');
+        $.ajax({
+            url: '/run/resolve',
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            dataType: 'json',
+            data: { event_id: op.event_id, csv: op.csv, mode: op.mode },
+        }).done(function(resp) {
+            if (resp.output) appendConsole(resp.output, 'info');
+            if (resp.error) appendConsole(resp.error, 'error');
+            appendConsole('$ [' + op.label + '] Exit: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
+            next();
+        }).fail(function(xhr) {
+            appendConsole('AJAX error on ' + op.label + ': ' + (xhr.responseText || 'unknown'), 'error');
+            next();
+        });
+    })();
+}
+
+// ─── Event browser ────────────────────────────────────────────────────────────
+
+var _eventBrowserTarget = null; // 'long', 'short', or 'junior'
+
+function openEventBrowser(target) {
+    _eventBrowserTarget = target;
+    var title = target === 'long' ? 'Long Course Events' : target === 'short' ? 'Short Course Events' : 'Junior Events';
+    $('#events-modal-title').text(title);
+    $('#event-search-q').val('');
+    $('#event-search-div').val('');
+    $('#events-modal').modal('show');
+    searchEvents();
+}
+
+function searchEvents(e) {
+    if (e && e.key && e.key !== 'Enter' && e.target.id !== 'event-search-div') return;
+    var q = $('#event-search-q').val().trim();
+    var div = $('#event-search-div').val();
+    var url = '/api/events';
+    var params = [];
+    if (q) params.push('q=' + encodeURIComponent(q));
+    if (div) params.push('division=' + encodeURIComponent(div));
+    if (params.length) url += '?' + params.join('&');
+    $('#events-modal-body').html('<tr><td colspan="7" class="center aligned">Loading...</td></tr>');
+    $.getJSON(url, function(resp) {
+        if (resp.error) {
+            $('#events-modal-body').html('<tr><td colspan="7" class="red text">Error: ' + escapeHtml(resp.error) + '</td></tr>');
+            return;
+        }
+        renderEventRows(resp.events || []);
+    }).fail(function() {
+        $('#events-modal-body').html('<tr><td colspan="7" class="red text">Failed to load events.</td></tr>');
+    });
+}
+
+function renderEventRows(events) {
+    if (events.length === 0) {
+        $('#events-modal-body').html('<tr><td colspan="7" class="center aligned">No events found.</td></tr>');
+        return;
+    }
+    var html = '';
+    events.forEach(function(ev) {
+        html += '<tr>' +
+            '<td>' + ev.id + '</td>' +
+            '<td>' + ev.eventDate + '</td>' +
+            '<td>' + ev.division + '</td>' +
+            '<td>' + ev.distance + 'km</td>' +
+            '<td>' + (ev.venue || '—') + '</td>' +
+            '<td>' + (ev.entries || 0) + '</td>' +
+            '<td><button class="ui mini compact button" onclick="selectEvent(' + ev.id + ')">Use</button></td>' +
+            '</tr>';
+    });
+    $('#events-modal-body').html(html);
+}
+
+function selectEvent(id) {
+    if (!_eventBrowserTarget) return;
+    $('#events-modal').modal('hide');
+    $('#resolve-event-' + _eventBrowserTarget).val(id);
+}
+
+// ─── Auto-detect ─────────────────────────────────────────────────────────────
+
+function autoDetectResolve() {
+    var csvPath = $('#resolve-csv-path').val();
+    if (!csvPath) {
+        // Try to find the last parsed CSV from registrations/
+        var files = [];
+        try {
+            // Use the parse name if provided, otherwise use a glob pattern
+            var name = $('#parse-name').val().trim();
+            // The parse output goes to storage/app/handicapping/
+            // If we don't know the name, we can't auto-detect
+            if (!name) {
+                appendConsole('$ Auto-detect: enter an Identity Name in Phase 1 first, then run Parse.', 'warn');
+                return;
+            }
+            csvPath = 'storage/app/handicapping/' + name + '.csv';
+        } catch(e) {}
+    }
+
+    if (!csvPath) {
+        appendConsole('$ Auto-detect: run Parse first to generate a CSV.', 'warn');
+        return;
+    }
+
+    appendConsole('$ Auto-detecting events from: ' + csvPath, 'debug');
+    $('#btn-auto-detect').addClass('loading disabled');
+
+    $.post('/api/events/auto-detect',
+        { csv_path: csvPath, _token: $('meta[name="csrf-token"]').attr('content') },
+        function(resp) {
+            $('#btn-auto-detect').removeClass('loading disabled');
+            if (resp.error) {
+                appendConsole('$ Auto-detect error: ' + resp.error, 'error');
+                return;
+            }
+            var events = resp.events || [];
+            var distances = resp.distances || [];
+            appendConsole('$ Found distances: ' + distances.join('km, ') + 'km', 'info');
+
+            if (events.length === 0) {
+                appendConsole('$ No matching events found for those distances.', 'warn');
+                return;
+            }
+
+            // Group events by distance
+            var byDist = {};
+            events.forEach(function(ev) {
+                var d = parseFloat(ev.distance);
+                if (!byDist[d]) byDist[d] = [];
+                byDist[d].push(ev);
+            });
+
+            // Auto-fill fields: pick best match per distance
+            // Convention: 8km+ = long, 2-5km = short, <2km = junior
+            Object.keys(byDist).forEach(function(dist) {
+                var evList = byDist[dist];
+                if (evList.length === 0) return;
+                var ev = evList[0]; // most recent
+                var d = parseFloat(dist);
+                var csvPathForDist = csvPath; // user should split; auto-detect just fills event IDs
+                if (d >= 5) {
+                    $('#resolve-event-long').val(ev.id);
+                    if (!$('#resolve-csv-long').val()) $('#resolve-csv-long').val(csvPath);
+                    appendConsole('$ Long Course → Event ' + ev.id + ' (' + ev.eventDate + ', ' + ev.distance + 'km)', 'info');
+                } else if (d >= 1.6) {
+                    $('#resolve-event-short').val(ev.id);
+                    if (!$('#resolve-csv-short').val()) $('#resolve-csv-short').val(csvPath);
+                    appendConsole('$ Short Course → Event ' + ev.id + ' (' + ev.eventDate + ', ' + ev.distance + 'km)', 'info');
+                } else {
+                    $('#resolve-event-junior').val(ev.id);
+                    appendConsole('$ Junior → Event ' + ev.id + ' (' + ev.eventDate + ', ' + ev.distance + 'km)', 'info');
+                }
+            });
+        }, 'json'
+    ).fail(function(xhr) {
+        $('#btn-auto-detect').removeClass('loading disabled');
+        appendConsole('$ Auto-detect failed: ' + (xhr.responseText || 'unknown'), 'error');
     });
 }
 </script>
