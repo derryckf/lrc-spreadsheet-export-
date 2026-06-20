@@ -56,11 +56,11 @@
                 <div class="field">
                     <label>Registration File</label>
                     <div class="ui top attached tabular menu" id="parse-tabs">
-                        <a class="active item" data-tab="path"><i class="folder icon"></i> Local Path</a>
-                        <a class="item" data-tab="upload"><i class="upload icon"></i> Upload File</a>
+                        <a class="active item" data-tab="path"><i class="folder open icon"></i> Browse Local</a>
+                        <a class="item" data-tab="upload"><i class="upload icon"></i> Upload & Keep</a>
                     </div>
                     <div class="ui bottom attached tab segment active" data-tab="path">
-                        <input type="text" id="parse-file" placeholder="registrations/LRC 2026 Race N - Venue.txt">
+                        <input type="file" id="parse-file" accept=".txt" class="ui input">
                     </div>
                     <div class="ui bottom attached tab segment" data-tab="upload">
                         <input type="file" id="parse-upload" accept=".txt">

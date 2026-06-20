@@ -57,25 +57,31 @@ class PipelineController extends Controller
 
     /**
      * Phase 1: webscorer:parse
-     * Accepts either a local file path (text) or a file upload.
+     * Accepts either a file upload ('file' or 'upload' field) or a local path string.
      */
     public function runParse(Request $request): JsonResponse
     {
         $filePath = null;
 
-        // Handle file upload
+        // Handle file upload (either 'file' or 'upload' field — both are now file inputs)
         if ($request->hasFile('upload')) {
             $uploaded = $request->file('upload');
             $dest = base_path('registrations/' . $uploaded->getClientOriginalName());
             $uploaded->move(dirname($dest), basename($dest));
             $filePath = 'registrations/' . $uploaded->getClientOriginalName();
+        } elseif ($request->hasFile('file')) {
+            $uploaded = $request->file('file');
+            $dest = base_path('registrations/' . $uploaded->getClientOriginalName());
+            $uploaded->move(dirname($dest), basename($dest));
+            $filePath = 'registrations/' . $uploaded->getClientOriginalName();
         } elseif ($request->filled('file')) {
+            // Fallback: text path (for backwards compat or direct path entry)
             $filePath = $request->input('file');
         }
 
         if (!$filePath) {
             return response()->json([
-                'error' => 'No file provided — enter a path or upload a file.',
+                'error' => 'No file provided.',
                 'exit_code' => 1,
             ], 422);
         }
