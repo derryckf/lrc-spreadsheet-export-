@@ -6,6 +6,7 @@
  * Usage:
  *   php cli.php webscorer:parse {file} {--name=}
  *   php cli.php webscorer:resolve {eventId} {csv}
+ *   php cli.php event:inject-season-pass {eventId} [{eventId2} ...] [--season=YYYY]
  *   php cli.php handicapper:process {eventId} {--x=8}
  *   php cli.php handicapper:export {eventId} [--format=xlsx] [--all-divisions] [--gdrive]
  *   php cli.php handicapper:import {eventId} [{file.xlsx}] [--gdrive[=fileId]]
@@ -123,6 +124,7 @@ LRC Handicapping CLI
 Usage:
   php cli.php webscorer:parse <file> [--name=<identity_basename>]
   php cli.php webscorer:resolve <eventId> <manifest.csv> [--interactive] [--skip-unknowns]
+  php cli.php event:inject-season-pass <eventId> [<eventId2> ...] [--season=YYYY]
   php cli.php handicapper:process <eventId> [--x=8]
   php cli.php handicapper:export <eventId> [--format=xlsx] [--all-divisions] [--gdrive]
   php cli.php handicapper:import <eventId> [<file.xlsx>] [--gdrive[=fileId]]
@@ -134,6 +136,8 @@ Commands:
   webscorer:resolve   Resolve identities + create member/eventEntry records
                        --interactive: prompt for each unknown runner (M=match, U=update, C=create, S=skip, A=approve all)
                        --skip-unknowns: skip all unknown runners without prompting
+  event:inject-season-pass  Add season-pass holders (everyEvent) to eventEntry for given events
+                       Run AFTER resolve, BEFORE process. Accepts multiple eventIds.
   handicapper:process Compute stats (daysSince, lastWin, pace estimates)
   handicapper:export  Export spreadsheet for handicapper (--gdrive to upload to Drive)
   handicapper:import  Import completed spreadsheet from --gdrive or local file
@@ -153,6 +157,7 @@ try {
     match ($command) {
         'webscorer:parse'    => runWebscorerParse($args, $logger),
         'webscorer:resolve'  => runWebscorerResolve($args, $logger),
+        'event:inject-season-pass' => runEventInjectSeasonPass($args, $logger),
         'handicapper:process' => runHandicapperProcess($args, $logger),
         'handicapper:export' => runHandicapperExport($args, $logger),
         'handicapper:import' => runHandicapperImport($args, $logger),
@@ -306,6 +311,31 @@ function parseOpts(array $args): array
 
 
 
+
+// ═══════════════════════════════════════════════════════════════════
+// event:inject-season-pass — add everyEvent members to eventEntry
+// ═══════════════════════════════════════════════════════════════════
+
+function runEventInjectSeasonPass(array $args, CliLogger $logger): void
+{
+    $opts = parseOpts($args);
+    $positional = $opts['positional'];
+    if (count($positional) < 1) {
+        fail("Usage: php cli.php event:inject-season-pass <eventId> [<eventId2> ...] [--season=YYYY]");
+    }
+
+    $season = isset($opts['season']) ? (int)$opts['season'] : null;
+    $eventIds = array_map('intval', $positional);
+
+    $logger->info('Injecting season-pass holders into ' . count($eventIds) . ' event(s)');
+
+    $injector = new \App\Services\SeasonPassInjector(getDb(), $logger);
+
+    foreach ($eventIds as $eventId) {
+        $result = $injector->inject($eventId, $season);
+        echo "Event {$eventId}: {$result['injected']} injected, {$result['skipped']} already registered\n";
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // handicapper:process — compute stats
