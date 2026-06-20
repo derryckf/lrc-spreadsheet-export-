@@ -45,3 +45,8 @@ Inital_example_sheet.xlsx
 
 # Database backups (contain PII)
 /backups/
+
+# Laravel runtime (generated, not committed)
+/storage/framework/
+/storage/logs/
+/bootstrap/cache/

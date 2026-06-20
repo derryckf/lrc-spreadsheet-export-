@@ -20,7 +20,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/lrc-db.php';
 
 $args = $argv;
 array_shift($args); // script name

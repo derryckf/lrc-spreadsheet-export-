@@ -13,7 +13,7 @@
  *   php cli.php handicapper:gdrive:list
  *   php cli.php --help
  *
- * Environment variables (or config/database.php):
+ * Environment variables (or config/lrc-db.php):
  *   DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
  */
 
@@ -35,7 +35,7 @@ if (is_readable(__DIR__ . '/.env')) {
     }
 }
 
-require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/lrc-db.php';
 require_once __DIR__ . '/config/lrc-handicapping.php';
 
 // Composer autoload (PhpSpreadsheet, PhpUnit, etc.)
