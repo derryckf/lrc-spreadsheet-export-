@@ -60,10 +60,11 @@
                         <a class="item" data-tab="upload"><i class="upload icon"></i> Upload & Keep</a>
                     </div>
                     <div class="ui bottom attached tab segment active" data-tab="path">
-                        <input type="file" id="parse-file" accept=".txt" class="ui input">
+                        <input type="file" id="parse-file" name="file" accept=".txt">
                     </div>
                     <div class="ui bottom attached tab segment" data-tab="upload">
-                        <input type="file" id="parse-upload" accept=".txt">
+                        <input type="file" id="parse-upload" name="upload" accept=".txt">
+                    </div>
                     </div>
                 </div>
                 <div class="field">
@@ -298,15 +299,16 @@ function collectFormData(phase) {
     switch(phase) {
         case 1:
             var parseMode = $('#parse-tabs .active.item').data('tab');
-            if (parseMode === 'upload') {
-                if (!$('#parse-upload')[0].files[0]) { alert('Select a file to upload'); return null; }
-                var formData = new FormData();
-                formData.append('upload', $('#parse-upload')[0].files[0]);
-                formData.append('name', $('#parse-name').val());
-                return formData;
+            // Determine which file input to use based on active tab
+            var fileInput = (parseMode === 'upload') ? $('#parse-upload')[0] : $('#parse-file')[0];
+            if (!fileInput.files[0]) {
+                alert('Select a file first');
+                return null;
             }
-            if (!$('#parse-file').val()) { alert('Enter a file path'); return null; }
-            return { file: $('#parse-file').val(), name: $('#parse-name').val() };
+            var formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('name', $('#parse-name').val());
+            return formData;
         case 2:
             if (!$('#resolve-event-id').val() || !$('#resolve-csv').val()) { alert('Enter event ID and CSV path'); return null; }
             return { event_id: $('#resolve-event-id').val(), csv: $('#resolve-csv').val(), mode: $('#resolve-mode').val() };
