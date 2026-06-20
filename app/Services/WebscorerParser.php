@@ -104,7 +104,7 @@ class WebscorerParser
         $cmd = "bash " . escapeshellarg($generateScript) . ' ' .
               escapeshellarg($tmpDir) . ' ' .
               escapeshellarg($tmpDir) . ' ' .
-              escapeshellarg($identityName . '_input.txt') . ' 2>&1';
+              escapeshellarg($identityName . '_input.txt');
 
         $this->logger()->info("Running: {$cmd}");
 
@@ -114,15 +114,17 @@ class WebscorerParser
         }
         fclose($pipes[0]);
 
-        // Capture output
+        // Capture output — suppress PHP notices from pipe read races
         $stdout = '';
-        while (($line = fgets($pipes[1])) !== false) {
+        $errLevel = error_reporting(0);
+        while (($line = @fgets($pipes[1])) !== false) {
             $stdout .= $line;
             $this->logger()->debug("[generateCsvFile] " . rtrim($line));
         }
         fclose($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
+        $stderr = @stream_get_contents($pipes[2]);
         fclose($pipes[2]);
+        error_reporting($errLevel);
 
         $exitCode = proc_close($process);
 
@@ -172,7 +174,7 @@ class WebscorerParser
         $inputFile = tempnam(sys_get_temp_dir(), 'lrc_in_');
         file_put_contents($inputFile, $input);
 
-        $cmd = 'cat ' . escapeshellarg($inputFile) . ' | ' . $script . ' > ' . escapeshellarg($outputFile) . ' 2>&1';
+        $cmd = 'cat ' . escapeshellarg($inputFile) . ' | ' . $script . ' > ' . escapeshellarg($outputFile) . ' 2>/dev/null';
 
         $this->logger()->debug("[{$stageLabel}] Running: {$cmd}");
 
