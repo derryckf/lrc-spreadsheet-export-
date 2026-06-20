@@ -54,8 +54,17 @@
         <div class="ui form">
             <div class="two fields">
                 <div class="field">
-                    <label>Registration File Path</label>
-                    <input type="text" id="parse-file" placeholder="registrations/LRC 2026 Race N - Venue.txt">
+                    <label>Registration File</label>
+                    <div class="ui top attached tabular menu" id="parse-tabs">
+                        <a class="active item" data-tab="path"><i class="folder icon"></i> Local Path</a>
+                        <a class="item" data-tab="upload"><i class="upload icon"></i> Upload File</a>
+                    </div>
+                    <div class="ui bottom attached tab segment active" data-tab="path">
+                        <input type="text" id="parse-file" placeholder="registrations/LRC 2026 Race N - Venue.txt">
+                    </div>
+                    <div class="ui bottom attached tab segment" data-tab="upload">
+                        <input type="file" id="parse-upload" accept=".txt">
+                    </div>
                 </div>
                 <div class="field">
                     <label>Identity Name (optional)</label>
@@ -232,6 +241,7 @@
 $(function() {
     $('.ui.dropdown').dropdown();
     $('.ui.checkbox').checkbox();
+    $('#parse-tabs .item').tab();
 
     // Phase tab switching
     $('.phase-tab').click(function() {
@@ -247,20 +257,29 @@ $(function() {
     $('.run-btn').click(function() {
         var endpoint = $(this).data('endpoint');
         var phase = $(this).data('phase');
-        var data = collectFormData(phase);
-        if (data === null) return;
+        var result = collectFormData(phase);
+        if (result === null) return;
 
         var $btn = $(this);
         $btn.addClass('loading disabled');
         appendConsole('$ Running phase ' + phase + '...', 'debug');
 
-        $.ajax({
+        var ajaxOpts = {
             url: endpoint,
             method: 'POST',
-            data: data,
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             dataType: 'json',
-        }).done(function(resp) {
+        };
+
+        if (result instanceof FormData) {
+            ajaxOpts.data = result;
+            ajaxOpts.processData = false;
+            ajaxOpts.contentType = false;
+        } else {
+            ajaxOpts.data = result;
+        }
+
+        $.ajax(ajaxOpts).done(function(resp) {
             if (resp.output) appendConsole(resp.output, 'info');
             if (resp.error) appendConsole(resp.error, 'error');
             appendConsole('$ Exit code: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
@@ -278,6 +297,14 @@ $(function() {
 function collectFormData(phase) {
     switch(phase) {
         case 1:
+            var parseMode = $('#parse-tabs .active.item').data('tab');
+            if (parseMode === 'upload') {
+                if (!$('#parse-upload')[0].files[0]) { alert('Select a file to upload'); return null; }
+                var formData = new FormData();
+                formData.append('upload', $('#parse-upload')[0].files[0]);
+                formData.append('name', $('#parse-name').val());
+                return formData;
+            }
             if (!$('#parse-file').val()) { alert('Enter a file path'); return null; }
             return { file: $('#parse-file').val(), name: $('#parse-name').val() };
         case 2:
