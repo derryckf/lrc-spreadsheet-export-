@@ -247,14 +247,14 @@ class PipelineController extends Controller
             return response()->json(['error' => 'Cannot open CSV'], 500);
         }
 
-        $header = fgetrow($handle);
+        $header = fgetcsv($handle);
         $distIdx = array_search('Distance', $header);
         if ($distIdx === false) {
             $distIdx = array_search('distance', $header);
         }
 
         if ($distIdx !== false) {
-            while (($row = fgetrow($handle)) !== false) {
+            while (($row = fgetcsv($handle)) !== false) {
                 $d = trim($row[$distIdx] ?? '');
                 if ($d !== '' && is_numeric($d)) {
                     $distances[(float)$d] = true;
