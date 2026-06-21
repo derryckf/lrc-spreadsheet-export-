@@ -311,28 +311,28 @@
     </div>
 </div>
 
-{{-- ═══ Gotty Terminal Modal ═══ --}}
+{{-- ═══ Interactive Resolve Modal ═══ --}}
 <div class="ui modal" id="gotty-modal">
     <i class="close icon"></i>
     <div class="header">
-        <i class="terminal icon"></i> Interactive Resolve Terminal
+        <i class="terminal icon"></i> Interactive Resolve — Run in Kitty Terminal
     </div>
     <div class="content">
         <div class="ui message info">
-            <p>Run this command on the server where gotty is running, then click <strong>Open Terminal</strong>.</p>
+            <p>Copy the command below and paste it into a Kitty terminal, or click <strong>Open in Kitty</strong> to launch it directly.</p>
         </div>
         <div class="ui segment" style="background:#1a1a1a;padding:1rem">
             <code id="gotty-command" style="color:#00ff00;font-family:monospace;font-size:0.9rem;white-space:pre-wrap;word-break:break-all"></code>
         </div>
         <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center">
-            <button class="ui primary button" id="gotty-open-btn">
-                <i class="external icon"></i> Open Terminal
+            <button class="ui primary button" id="gotty-open-btn" onclick="openInKitty()">
+                <i class="external icon"></i> Open in Kitty
             </button>
             <button class="ui basic button" id="gotty-copy-btn" onclick="copyGottyCommand()">
                 <i class="copy icon"></i> Copy Command
             </button>
             <div class="ui right floated grey text" style="font-size:0.85em">
-                Requires gotty running on the server — see setup docs.
+                Command runs on your local machine.
             </div>
         </div>
     </div>
@@ -794,15 +794,9 @@ function openGottyModal() {
     var manifest = _lastResolveManifestCsv;
     // Convert to relative path from project root
     var relManifest = manifest.replace(/^.*?(storage|registrations)\//, '$1/');
-    var cmd = 'ttyd -p 8088 --writable php ' + cliPath + '/cli.php webscorer:interactive-resolve ' + eventId + ' ' + relManifest;
+    var cmd = 'php ' + cliPath + '/cli.php webscorer:interactive-resolve ' + eventId + ' ' + relManifest;
     $('#gotty-command').text(cmd);
     $('#gotty-modal').modal('show');
-    // Fetch ttyd URL from server
-    $.get('/api/gotty-url', function(resp) {
-        $('#gotty-open-btn').attr('href', resp.url || 'http://localhost:8088');
-    }).fail(function() {
-        $('#gotty-open-btn').attr('href', 'http://localhost:8088');
-    });
 }
 
 function copyGottyCommand() {
@@ -811,6 +805,15 @@ function copyGottyCommand() {
         $('#gotty-copy-btn').html('<i class="check icon"></i> Copied!');
         setTimeout(function() { $('#gotty-copy-btn').html('<i class="copy icon"></i> Copy Command'); }, 2000);
     });
+}
+
+function openInKitty() {
+    var cmd = $('#gotty-command').text();
+    $('#gotty-modal').modal('hide');
+    copyGottyCommand();
+    appendConsole('$ Command copied to clipboard.', 'info');
+    appendConsole('$ Paste this into a Kitty terminal:', 'info');
+    appendConsole('$   ' + cmd, 'info');
 }
 </script>
 
