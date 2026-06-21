@@ -794,11 +794,15 @@ function openGottyModal() {
     var manifest = _lastResolveManifestCsv;
     // Convert to relative path from project root
     var relManifest = manifest.replace(/^.*?(storage|registrations)\//, '$1/');
-    var cmd = 'gotty --port 8080 --permit-write --auto-exit ' +
-        'php ' + cliPath + '/cli.php webscorer:interactive-resolve ' + eventId + ' ' + relManifest;
+    var cmd = 'ttyd -p 8088 --writable php ' + cliPath + '/cli.php webscorer:interactive-resolve ' + eventId + ' ' + relManifest;
     $('#gotty-command').text(cmd);
-    $('#gotty-open-btn').attr('href', 'http://localhost:8080');
     $('#gotty-modal').modal('show');
+    // Fetch ttyd URL from server
+    $.get('/api/gotty-url', function(resp) {
+        $('#gotty-open-btn').attr('href', resp.url || 'http://localhost:8088');
+    }).fail(function() {
+        $('#gotty-open-btn').attr('href', 'http://localhost:8088');
+    });
 }
 
 function copyGottyCommand() {
