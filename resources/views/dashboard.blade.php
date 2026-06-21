@@ -150,11 +150,8 @@
                 </div>
             </div>
             <div class="field" style="margin-top:0.5rem">
-                <label style="display:inline;margin-right:1rem">Mode</label>
-                <select class="ui dropdown" id="resolve-mode" style="display:inline-block;width:auto">
-                    <option value="skip">Skip unknowns</option>
-                    <option value="interactive">Interactive</option>
-                </select>
+                {{-- Mode: Interactive is CLI-only (stdin not available in web UI) --}}
+                <input type="hidden" id="resolve-mode" value="skip">
             </div>
             <div style="margin-top:0.75rem; display:flex; gap:0.5rem; align-items:center">
                 <button class="ui primary button resolve-single-btn" data-target="long" data-endpoint="/run/resolve">
