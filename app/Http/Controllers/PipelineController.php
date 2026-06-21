@@ -30,20 +30,23 @@ class PipelineController extends Controller
         $process = new Process($cmd, base_path());
         $process->setTimeout(600);
 
-        // Inherit DB env vars so cli.php can connect
+        // Suppress PHP error output from subprocess (deprecation notices flood the output)
         $process->run(null, [
             'DB_HOST'     => config('database.connections.mysql.host'),
             'DB_PORT'     => (string) config('database.connections.mysql.port'),
             'DB_DATABASE' => config('database.connections.mysql.database'),
             'DB_USERNAME' => config('database.connections.mysql.username'),
             'DB_PASSWORD' => config('database.connections.mysql.password'),
+            'PHP_INI_SCAN_DIR' => '/dev/null',
         ]);
-
-        // Strip ANSI colour codes for clean output
         $output = preg_replace('/\033\[[0-9;]*m/', '', $process->getOutput());
+        // Strip any residual PHP deprecation / notice lines
+        $output = preg_replace('/^Deprecated: .+$/m', '', $output);
+        $output = preg_replace('/^Notice: .+$/m', '', $output);
+        $output = preg_replace('/\n{3,}/', "\n\n", $output);
 
         return [
-            'output'    => $output,
+            'output'    => trim($output),
             'error'     => preg_replace('/\033\[[0-9;]*m/', '', $process->getErrorOutput()),
             'exit_code' => $process->getExitCode(),
         ];
