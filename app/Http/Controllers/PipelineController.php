@@ -23,9 +23,12 @@ class PipelineController extends Controller
      */
     private function runCli(array $args): array
     {
+        // Disable PHP execution time limit — these commands can run long
+        set_time_limit(600);
+
         $cmd = array_merge(['php', $this->cliBasePath()], $args);
         $process = new Process($cmd, base_path());
-        $process->setTimeout(300);
+        $process->setTimeout(600);
 
         // Inherit DB env vars so cli.php can connect
         $process->run(null, [
