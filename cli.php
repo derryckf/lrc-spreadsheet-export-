@@ -124,6 +124,7 @@ LRC Handicapping CLI
 Usage:
   php cli.php webscorer:parse <file> [--name=<identity_basename>]
   php cli.php webscorer:resolve <eventId> <manifest.csv> [--interactive] [--skip-unknowns]
+  php cli.php webscorer:interactive-resolve <eventId> <manifest.csv>
   php cli.php event:inject-season-pass <eventId> [<eventId2> ...] [--season=YYYY]
   php cli.php handicapper:process <eventId> [--x=8]
   php cli.php handicapper:export <eventId> [--format=xlsx] [--all-divisions] [--gdrive]
@@ -134,10 +135,11 @@ Usage:
 Commands:
   webscorer:parse     Parse Webscorer TXT to normalised CSV
   webscorer:resolve   Resolve identities + create member/eventEntry records
-                       --interactive: prompt for each unknown runner (M=match, U=update, C=create, S=skip, A=approve all)
-                       --skip-unknowns: skip all unknown runners without prompting
+                        --interactive: prompt for each unknown runner (M=match, U=update, C=create, S=skip, A=approve all)
+                        --skip-unknowns: skip all unknown runners without prompting
+  webscorer:interactive-resolve  Handle unknown runners from a resolved manifest (interactive, run via gotty)
   event:inject-season-pass  Add season-pass holders (everyEvent) to eventEntry for given events
-                       Run AFTER resolve, BEFORE process. Accepts multiple eventIds.
+                        Run AFTER resolve, BEFORE process. Accepts multiple eventIds.
   handicapper:process Compute stats (daysSince, lastWin, pace estimates)
   handicapper:export  Export spreadsheet for handicapper (--gdrive to upload to Drive)
   handicapper:import  Import completed spreadsheet from --gdrive or local file
@@ -157,6 +159,7 @@ try {
     match ($command) {
         'webscorer:parse'    => runWebscorerParse($args, $logger),
         'webscorer:resolve'  => runWebscorerResolve($args, $logger),
+        'webscorer:interactive-resolve' => runWebscorerInteractiveResolve($args, $logger),
         'event:inject-season-pass' => runEventInjectSeasonPass($args, $logger),
         'handicapper:process' => runHandicapperProcess($args, $logger),
         'handicapper:export' => runHandicapperExport($args, $logger),
@@ -286,6 +289,73 @@ function runWebscorerResolve(array $args, CliLogger $logger): void
     echo "Matched:     " . ($unknownStats['matched'] ?? 0) . "\n";
     echo "Updated:     " . ($unknownStats['updated'] ?? 0) . "\n";
     echo "Skipped:     " . ($unknownStats['skipped'] ?? 0) . "\n";
+}
+
+/**
+ * Interactive resolve — handles only unknown runners from a previously-resolved manifest.
+ * Designed to be run via gotty (web terminal) so the user can interactively answer prompts.
+ * Usage: php cli.php webscorer:interactive-resolve <eventId> <manifest.csv>
+ */
+function runWebscorerInteractiveResolve(array $args, CliLogger $logger): void
+{
+    $opts = parseOpts($args);
+    $positional = $opts['positional'];
+    if (count($positional) < 2) {
+        fail("Usage: php cli.php webscorer:interactive-resolve <eventId> <manifest.csv>");
+    }
+    $eventId = (int)$positional[0];
+    $manifestCsv = $positional[1];
+    $config = require __DIR__ . '/config/lrc-handicapping.php';
+
+    $logger->info("Interactive resolve — event {$eventId}");
+    $logger->info("Manifest: {$manifestCsv}");
+
+    // Read manifest and collect unknowns
+    $unknownRows = [];
+    $h = fopen($manifestCsv, 'r');
+    if (!$h) {
+        fail("Cannot open manifest: {$manifestCsv}");
+    }
+    $headers = fgetcsv($h);
+    $headers = array_map('trim', $headers);
+    $headerCount = count($headers);
+    while (($row = fgetcsv($h)) !== false) {
+        if (count($row) < $headerCount) {
+            $row = array_pad($row, $headerCount, '');
+        } elseif (count($row) > $headerCount) {
+            $row = array_slice($row, 0, $headerCount);
+        }
+        $data = array_combine($headers, $row);
+        $data['_eventId'] = $eventId;
+        if (str_starts_with($data['member_id'] ?? '', 'tmp_')) {
+            $unknownRows[] = $data;
+        }
+    }
+    fclose($h);
+
+    $totalUnknowns = count($unknownRows);
+    if ($totalUnknowns === 0) {
+        $logger->info("No unknown runners found — nothing to do.");
+        return;
+    }
+
+    $logger->info("Found {$totalUnknowns} unknown runner(s) in manifest.");
+    $logger->info("Starting interactive resolution...\n");
+
+    $iResolver = new \App\Services\InteractiveResolver(getDb(), $logger, $config);
+    try {
+        $stats = $iResolver->resolveInteractive($manifestCsv, $eventId, $unknownRows);
+        $logger->info("Interactive resolution complete.");
+        echo "\nSummary: ";
+        echo "Created: {$stats['created']}, Matched: {$stats['matched']}, ";
+        echo "Updated: {$stats['updated']}, Skipped: {$stats['skipped']}\n";
+    } catch (\RuntimeException $e) {
+        if ($e->getMessage() === 'USER_QUIT') {
+            $logger->info("User quit.");
+            return;
+        }
+        throw $e;
+    }
 }
 
 function fail(string $msg): never

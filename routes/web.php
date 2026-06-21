@@ -17,7 +17,8 @@ Route::post('/run/import', [PipelineController::class, 'runImport']);
 Route::get('/events', [PipelineController::class, 'events']);
 Route::get('/event/{id}/entries', [PipelineController::class, 'eventEntries']);
 
-// API: searchable events + auto-detect
+// API: searchable events + auto-detect + gotty
 Route::get('/api/events', [PipelineController::class, 'events']);
 Route::post('/api/events/auto-detect', [PipelineController::class, 'autoDetectEvents']);
 Route::post('/api/resolve-csv-path', [PipelineController::class, 'resolveCsvPath']);
+Route::get('/api/gotty-url', [PipelineController::class, 'gottyUrl']);

@@ -368,6 +368,15 @@ class PipelineController extends Controller
     }
 
     /**
+     * Return the gotty URL for interactive resolve sessions.
+     */
+    public function gottyUrl(Request $request): JsonResponse
+    {
+        $url = env('GOTTY_URL', 'http://localhost:8080');
+        return response()->json(['url' => $url]);
+    }
+
+    /**
      * Auto-detect events from a parsed CSV — POST /api/events/auto-detect
      * Reads the CSV's distance column, matches against event distances.
      */

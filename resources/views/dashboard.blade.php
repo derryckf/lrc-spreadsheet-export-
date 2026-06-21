@@ -49,6 +49,7 @@
 <input type="file" id="browse-csv-long"   accept=".csv" style="display:none" onchange="handleCsvBrowse(this, 'long')">
 <input type="file" id="browse-csv-short"  accept=".csv" style="display:none" onchange="handleCsvBrowse(this, 'short')">
 <input type="file" id="browse-csv-junior" accept=".csv" style="display:none" onchange="handleCsvBrowse(this, 'junior')">
+<input type="hidden" id="cli-base-path" value="{{ base_path() }}">
 
 {{-- ═══ Phase Panels ═══ --}}
 <div class="ui attached segment" id="phase-panels">
@@ -166,6 +167,14 @@
                 <div style="flex:1"></div>
                 <button class="ui green button resolve-all-btn" data-endpoint="/run/resolve" data-phase="2">
                     <i class="step forward icon"></i> Resolve All 3
+                </button>
+            </div>
+            {{-- Unknown runners alert — populated by JS after resolve with unknowns --}}
+            <div id="unknowns-alert" class="ui warning message" style="display:none;margin-top:0.75rem">
+                <i class="warning icon"></i>
+                <span id="unknowns-count"></span>
+                <button class="ui tiny right floated compact button" onclick="openGottyModal()" style="margin-left:0.5rem">
+                    <i class="terminal icon"></i> Handle Unknowns
                 </button>
             </div>
         </div>
@@ -302,6 +311,33 @@
     </div>
 </div>
 
+{{-- ═══ Gotty Terminal Modal ═══ --}}
+<div class="ui modal" id="gotty-modal">
+    <i class="close icon"></i>
+    <div class="header">
+        <i class="terminal icon"></i> Interactive Resolve Terminal
+    </div>
+    <div class="content">
+        <div class="ui message info">
+            <p>Run this command on the server where gotty is running, then click <strong>Open Terminal</strong>.</p>
+        </div>
+        <div class="ui segment" style="background:#1a1a1a;padding:1rem">
+            <code id="gotty-command" style="color:#00ff00;font-family:monospace;font-size:0.9rem;white-space:pre-wrap;word-break:break-all"></code>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center">
+            <button class="ui primary button" id="gotty-open-btn">
+                <i class="external icon"></i> Open Terminal
+            </button>
+            <button class="ui basic button" id="gotty-copy-btn" onclick="copyGottyCommand()">
+                <i class="copy icon"></i> Copy Command
+            </button>
+            <div class="ui right floated grey text" style="font-size:0.85em">
+                Requires gotty running on the server — see setup docs.
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -395,6 +431,9 @@ $(function() {
             if (resp.output) appendConsole(resp.output, 'info');
             if (resp.error) appendConsole(resp.error, 'error');
             appendConsole('$ [' + label + '] Exit: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
+            if (resp.exit_code === 0) {
+                checkForUnknowns(resp.output || '', eventId, label);
+            }
         }).fail(function(xhr) {
             appendConsole('AJAX error: ' + (xhr.responseText || 'unknown'), 'error');
         }).always(function() {
@@ -537,6 +576,9 @@ function chainResolveOperations(ops, $btn) {
             if (resp.output) appendConsole(resp.output, 'info');
             if (resp.error) appendConsole(resp.error, 'error');
             appendConsole('$ [' + op.label + '] Exit: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
+            if (resp.exit_code === 0) {
+                checkForUnknowns(resp.output || '', op.event_id, op.label);
+            }
             next();
         }).fail(function(xhr) {
             appendConsole('AJAX error on ' + op.label + ': ' + (xhr.responseText || 'unknown'), 'error');
@@ -716,6 +758,54 @@ function autoDetectResolve() {
     ).fail(function(xhr) {
         $('#btn-auto-detect').removeClass('loading disabled');
         appendConsole('$ Auto-detect failed: ' + (xhr.responseText || 'unknown'), 'error');
+    });
+}
+
+// ─── Unknown runner tracking ───────────────────────────────────────────────────
+
+var _lastResolveEventId = null;
+var _lastResolveManifestCsv = null;
+
+function checkForUnknowns(output, eventId, label) {
+    // Parse "Unknown: N" from resolve output
+    var m = output.match(/Unknown:\s*(\d+)/);
+    if (!m) return;
+    var n = parseInt(m[1], 10);
+    if (n > 0) {
+        // Find manifest path from output
+        var manifestMatch = output.match(/Manifest created:\s*(.+)/i);
+        if (manifestMatch) {
+            _lastResolveEventId = eventId;
+            _lastResolveManifestCsv = manifestMatch[1].trim();
+            $('#unknowns-count').text(n + ' unknown runner(s) in ' + label + ' (event ' + eventId + ')');
+            $('#unknowns-alert').show();
+            appendConsole('$ ' + n + ' unknown runner(s) — use "Handle Unknowns" to resolve interactively.', 'warn');
+        }
+    }
+}
+
+function openGottyModal() {
+    if (!_lastResolveEventId || !_lastResolveManifestCsv) {
+        appendConsole('$ No resolved manifest available. Run a resolve first.', 'warn');
+        return;
+    }
+    var cliPath = $('#cli-base-path').val();
+    var eventId = _lastResolveEventId;
+    var manifest = _lastResolveManifestCsv;
+    // Convert to relative path from project root
+    var relManifest = manifest.replace(/^.*?(storage|registrations)\//, '$1/');
+    var cmd = 'gotty --port 8080 --permit-write --auto-exit ' +
+        'php ' + cliPath + '/cli.php webscorer:interactive-resolve ' + eventId + ' ' + relManifest;
+    $('#gotty-command').text(cmd);
+    $('#gotty-open-btn').attr('href', 'http://localhost:8080');
+    $('#gotty-modal').modal('show');
+}
+
+function copyGottyCommand() {
+    var cmd = $('#gotty-command').text();
+    navigator.clipboard.writeText(cmd).then(function() {
+        $('#gotty-copy-btn').html('<i class="check icon"></i> Copied!');
+        setTimeout(function() { $('#gotty-copy-btn').html('<i class="copy icon"></i> Copy Command'); }, 2000);
     });
 }
 </script>
