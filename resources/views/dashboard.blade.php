@@ -177,6 +177,11 @@
                     <i class="terminal icon"></i> Handle Unknowns
                 </button>
             </div>
+            {{-- Participant table — shown after resolve completes --}}
+            <div id="resolve-results" class="resolve-results" style="margin-top:1rem;display:none">
+                <h4 class="ui header" style="margin-top:1rem"><i class="list icon"></i> Participants</h4>
+                <div id="resolve-results-table"></div>
+            </div>
         </div>
     </div>
 
@@ -200,6 +205,8 @@
             <button class="ui primary button run-btn" data-endpoint="/run/inject" data-phase="3">
                 <i class="play icon"></i> Inject
             </button>
+            {{-- Participant tables — shown after inject completes --}}
+            <div id="inject-results" class="inject-results" style="margin-top:1rem;display:none"></div>
         </div>
     </div>
 
@@ -217,6 +224,8 @@
             <button class="ui basic button" onclick="quickProcess()">
                 <i class="magic icon"></i> Process 3 events
             </button>
+            {{-- Participant tables — shown after process completes --}}
+            <div id="process-results" class="process-results" style="margin-top:1rem;display:none"></div>
         </div>
     </div>
 
@@ -396,6 +405,18 @@ $(function() {
                     if (splits.short)  { $('#resolve-csv-short').val(splits.short);  appendConsole('$ Short CSV: '  + splits.short  + ' (' + (splits.counts&&splits.counts.short||'?')  + ' rows)', 'info'); }
                     if (splits.junior) { $('#resolve-csv-junior').val(splits.junior); appendConsole('$ Junior CSV: ' + splits.junior + ' (' + (splits.counts&&splits.counts.junior||'?') + ' rows)', 'info'); }
                 }
+                // Show participant table after inject (phase 3) or process (phase 4)
+                if (phase == 3) {
+                    // Parse injected event IDs from form
+                    var injectIds = ($('#inject-event-ids').val() || '').split(/[\s,]+/).filter(function(v) { return v.trim(); });
+                    injectIds.forEach(function(id, i) {
+                        if (id) showEventEntries(id, 'Div ' + (i+1) + ' (Inject)', '#inject-results', i > 0);
+                    });
+                }
+                if (phase == 4) {
+                    var pid = $('#process-event-id').val();
+                    if (pid) showEventEntries(pid, 'Event ' + pid, '#process-results');
+                }
             }
         }).fail(function(xhr) {
             appendConsole('AJAX error: ' + (xhr.responseText || 'unknown'), 'error');
@@ -433,6 +454,7 @@ $(function() {
             appendConsole('$ [' + label + '] Exit: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
             if (resp.exit_code === 0) {
                 checkForUnknowns(resp.output || '', eventId, label);
+                showEventEntries(eventId, label, '#resolve-results');
             }
         }).fail(function(xhr) {
             appendConsole('AJAX error: ' + (xhr.responseText || 'unknown'), 'error');
@@ -503,15 +525,20 @@ function quickProcess() {
     if (!ids) return;
     var arr = ids.split(/[\s,]+/).filter(function(v) { return v.trim(); });
     var chain = arr.slice();
+    // Clear process results before starting
+    $('#process-results').html('');
+    var idx = 0;
     (function next() {
         if (chain.length === 0) { appendConsole('$ All events processed.', 'info'); return; }
         var id = chain.shift();
+        idx++;
         appendConsole('$ Processing event ' + id + '...', 'debug');
         $.post('/run/process', { event_id: id, _token: $('meta[name="csrf-token"]').attr('content') })
             .done(function(resp) {
                 if (resp.output) appendConsole(resp.output, 'info');
+                showEventEntries(id, 'Event ' + id, '#process-results', idx > 1);
                 next();
-            }).fail(function(xhr) { appendConsole('Error: ' + xhr.responseText, 'error'); });
+            }).fail(function(xhr) { appendConsole('Error: ' + xhr.responseText, 'error'); next(); });
     })();
 }
 
@@ -578,6 +605,7 @@ function chainResolveOperations(ops, $btn) {
             appendConsole('$ [' + op.label + '] Exit: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
             if (resp.exit_code === 0) {
                 checkForUnknowns(resp.output || '', op.event_id, op.label);
+                showEventEntries(op.event_id, op.label, '#resolve-results');
             }
             next();
         }).fail(function(xhr) {
@@ -758,6 +786,67 @@ function autoDetectResolve() {
     ).fail(function(xhr) {
         $('#btn-auto-detect').removeClass('loading disabled');
         appendConsole('$ Auto-detect failed: ' + (xhr.responseText || 'unknown'), 'error');
+    });
+}
+
+// ─── Event entry tables ───────────────────────────────────────────────────────
+
+var _eventEntriesCache = {};
+
+function showEventEntries(eventId, label, targetDiv, append) {
+    append = append || false;
+    var cacheKey = eventId + '|' + label;
+    if (_eventEntriesCache[cacheKey]) {
+        // Already loaded — just show it
+        if (!append) $(targetDiv).html(_eventEntriesCache[cacheKey]);
+        else $(targetDiv).append(_eventEntriesCache[cacheKey]);
+        $(targetDiv).show();
+        $(targetDiv + ' .accordion').accordion();
+        return;
+    }
+    $.get('/event/' + eventId + '/entries', function(resp) {
+        if (resp.error) { appendConsole('$ [Entries] Error: ' + resp.error, 'error'); return; }
+        var ev = resp.event || {};
+        var entries = resp.entries || [];
+        var html;
+        if (entries.length === 0) {
+            html = '<p><em>No entries found for ' + label + ' (event ' + eventId + ').</em></p>';
+        } else {
+            html = '<div class="ui small accordion" style="margin-bottom:0.5rem">' +
+                '<div class="title"><i class="dropdown icon"></i>' + label + ' — Event ' + eventId + ' — ' +
+                (ev.eventDate || '') + ' (Div ' + (ev.division||'') + ', ' + (ev.distance||'') + 'km) — ' +
+                entries.length + ' runner(s)' +
+                '</div>' +
+                '<div class="content" style="overflow-x:auto"><table class="ui small compact striped table"><thead><tr>' +
+                '<th>Name</th><th>ID</th><th>RegNo</th><th>Method</th>' +
+                '<th>Pace</th><th>Est Time</th><th>Hdcp</th>' +
+                '<th>daysSince</th><th>lastWin</th>' +
+                '</tr></thead><tbody>';
+            entries.forEach(function(e) {
+                html += '<tr>' +
+                    '<td>' + escHtml(e.firstName||'') + ' ' + escHtml(e.lastName||'') + '</td>' +
+                    '<td>' + e.member_id + '</td>' +
+                    '<td>' + escHtml(e.regNo||'') + '</td>' +
+                    '<td>' + escHtml(e.method||'') + '</td>' +
+                    '<td>' + escHtml(e.expectedPace||'') + '</td>' +
+                    '<td>' + escHtml(e.expectedTime||'') + '</td>' +
+                    '<td>' + escHtml(e.handicap||'') + '</td>' +
+                    '<td>' + (e.daysSince != null ? e.daysSince : '—') + '</td>' +
+                    '<td>' + (e.lastWin != null ? e.lastWin : '—') + '</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table></div></div>';
+        }
+        _eventEntriesCache[cacheKey] = html;
+        if (append) $(targetDiv).append(html);
+        else $(targetDiv).html(html);
+        $(targetDiv).show();
+        $(targetDiv + ' .accordion').accordion();
+    }).fail(function(xhr) {
+        var err = '<p><em class="red text">Failed to load entries: ' + (xhr.responseText || 'unknown') + '</em></p>';
+        if (append) $(targetDiv).append(err);
+        else $(targetDiv).html(err);
+        $(targetDiv).show();
     });
 }
 

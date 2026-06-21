@@ -204,10 +204,14 @@ class PipelineController extends Controller
             'mode'     => 'nullable|in:skip,interactive',
         ]);
 
-        $args = ['webscorer:resolve', (string)$request->integer('event_id'), $request->input('csv')];
+        $eventId = $request->integer('event_id');
+        $args = ['webscorer:resolve', (string) $eventId, $request->input('csv')];
         $args[] = $request->input('mode', 'skip') === 'interactive' ? '--interactive' : '--skip-unknowns';
 
-        return response()->json($this->runCli($args));
+        $result = $this->runCli($args);
+        // Include event_id in response for the UI
+        $result['event_id'] = $eventId;
+        return response()->json($result);
     }
 
     /**
