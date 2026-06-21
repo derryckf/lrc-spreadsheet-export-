@@ -20,3 +20,4 @@ Route::get('/event/{id}/entries', [PipelineController::class, 'eventEntries']);
 // API: searchable events + auto-detect
 Route::get('/api/events', [PipelineController::class, 'events']);
 Route::post('/api/events/auto-detect', [PipelineController::class, 'autoDetectEvents']);
+Route::post('/api/resolve-csv-path', [PipelineController::class, 'resolveCsvPath']);

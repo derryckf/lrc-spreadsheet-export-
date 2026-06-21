@@ -58,6 +58,7 @@ class PipelineController extends Controller
     /**
      * Phase 1: webscorer:parse
      * Accepts either a file upload ('file' or 'upload' field) or a local path string.
+     * After parsing, auto-splits the CSV by distance into long/short/junior files.
      */
     public function runParse(Request $request): JsonResponse
     {
@@ -91,7 +92,99 @@ class PipelineController extends Controller
             $args[] = '--name=' . $request->input('name');
         }
 
-        return response()->json($this->runCli($args));
+        $result = $this->runCli($args);
+
+        // Auto-split by distance if parse succeeded
+        if ($result['exit_code'] === 0) {
+            $splitResult = $this->splitByDistance($result);
+            $result['splits'] = $splitResult;
+        }
+
+        return response()->json($result);
+    }
+
+    /**
+     * Split the parsed CSV into long/short/junior based on distance column.
+     * Long ≥5km, Short ≥1.6km, Junior <1.6km.
+     * Updates the response array with split file paths.
+     */
+    private function splitByDistance(array &$result): array
+    {
+        // Extract the output CSV path from the result output
+        $outputCsv = null;
+        if (preg_match('/Output CSV:\s*(.+)/', $result['output'] ?? '', $m)) {
+            $outputCsv = trim($m[1]);
+        }
+        if (!$outputCsv || !file_exists($outputCsv)) {
+            return ['error' => 'Parsed CSV not found'];
+        }
+
+        $identityName = pathinfo($outputCsv, PATHINFO_FILENAME);
+
+        $longCsv   = null;
+        $shortCsv  = null;
+        $juniorCsv = null;
+
+        $handle = fopen($outputCsv, 'r');
+        if (!$handle) {
+            return ['error' => 'Cannot open CSV'];
+        }
+
+        $header = fgetcsv($handle);
+        $distIdx = array_search('distance', $header);
+        if ($distIdx === false) {
+            fclose($handle);
+            return ['error' => 'No distance column'];
+        }
+
+        // Open output handles for each category
+        $longHandle  = fopen(dirname($outputCsv) . "/{$identityName}_long.csv",  'w');
+        $shortHandle = fopen(dirname($outputCsv) . "/{$identityName}_short.csv", 'w');
+        $juniorHandle = fopen(dirname($outputCsv) . "/{$identityName}_junior.csv", 'w');
+
+        if (!$longHandle || !$shortHandle || !$juniorHandle) {
+            fclose($handle);
+            @fclose($longHandle); @fclose($shortHandle); @fclose($juniorHandle);
+            return ['error' => 'Cannot create split files'];
+        }
+
+        fputcsv($longHandle,  $header);
+        fputcsv($shortHandle, $header);
+        fputcsv($juniorHandle, $header);
+
+        $longCount = $shortCount = $juniorCount = 0;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $d = (float) preg_replace('/km$/i', '', $row[$distIdx] ?? '');
+            if ($d >= 5.0) {
+                fputcsv($longHandle, $row);
+                $longCount++;
+            } elseif ($d >= 1.6) {
+                fputcsv($shortHandle, $row);
+                $shortCount++;
+            } else {
+                fputcsv($juniorHandle, $row);
+                $juniorCount++;
+            }
+        }
+
+        fclose($handle);
+        fclose($longHandle);
+        fclose($shortHandle);
+        fclose($juniorHandle);
+
+        $baseRel = preg_replace('|^.*?/storage/app/|', 'storage/app/', dirname($outputCsv));
+
+        $longCsv  = $baseRel . "/{$identityName}_long.csv";
+        $shortCsv = $baseRel . "/{$identityName}_short.csv";
+        $juniorCsv = $baseRel . "/{$identityName}_junior.csv";
+
+        return [
+            'long'   => $longCsv,
+            'short'  => $shortCsv,
+            'junior' => $juniorCsv,
+            'counts' => ['long' => $longCount, 'short' => $shortCount, 'junior' => $juniorCount],
+        ];
     }
 
     /**
@@ -222,6 +315,50 @@ class PipelineController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Given a filename, resolve it to a relative storage path.
+     * Searches storage/app/handicapping/ and registrations/.
+     */
+    public function resolveCsvPath(Request $request): JsonResponse
+    {
+        $filename = basename($request->input('filename', ''));
+        if (!$filename) {
+            return response()->json(['error' => 'filename required'], 422);
+        }
+
+        $searchDirs = [
+            base_path('storage/app/handicapping'),
+            base_path('registrations'),
+        ];
+
+        foreach ($searchDirs as $dir) {
+            if (!is_dir($dir)) continue;
+            $matches = glob($dir . '/' . $filename);
+            if (!empty($matches) && file_exists($matches[0])) {
+                $rel = preg_replace('|^.*?/storage/app/|', 'storage/app/', $matches[0]);
+                if (strpos($matches[0], 'registrations/') !== false) {
+                    $rel = 'registrations/' . $filename;
+                }
+                return response()->json(['path' => $rel]);
+            }
+            // Also try with _long/_short/_junior suffix
+            $altName = preg_replace('/\.[^.]+$/', '', $filename);
+            if (preg_match('/_(long|short|junior)$/', $altName)) {
+                continue;
+            }
+            $altMatches = glob($dir . '/' . $altName . '_*.csv');
+            if (!empty($altMatches) && file_exists($altMatches[0])) {
+                $rel = preg_replace('|^.*?/storage/app/|', 'storage/app/', $altMatches[0]);
+                if (strpos($altMatches[0], 'registrations/') !== false) {
+                    $rel = 'registrations/' . basename($altMatches[0]);
+                }
+                return response()->json(['path' => $rel]);
+            }
+        }
+
+        return response()->json(['path' => null]);
     }
 
     /**

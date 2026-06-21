@@ -45,6 +45,11 @@
     </div>
 </div>
 
+{{-- Hidden CSV file inputs for browse buttons --}}
+<input type="file" id="browse-csv-long"   accept=".csv" style="display:none" onchange="handleCsvBrowse(this, 'long')">
+<input type="file" id="browse-csv-short"  accept=".csv" style="display:none" onchange="handleCsvBrowse(this, 'short')">
+<input type="file" id="browse-csv-junior" accept=".csv" style="display:none" onchange="handleCsvBrowse(this, 'junior')">
+
 {{-- ═══ Phase Panels ═══ --}}
 <div class="ui attached segment" id="phase-panels">
 
@@ -124,15 +129,24 @@
             <div class="three fields">
                 <div class="field">
                     <label>Long Course CSV</label>
-                    <input type="text" id="resolve-csv-long" placeholder="handicapping/name_long.csv">
+                    <div class="ui action input">
+                        <input type="text" id="resolve-csv-long" placeholder="Auto-filled after Parse" readonly>
+                        <button class="ui icon button" onclick="browseCsv('long')" tabindex="-1"><i class="folder open icon"></i></button>
+                    </div>
                 </div>
                 <div class="field">
                     <label>Short Course CSV</label>
-                    <input type="text" id="resolve-csv-short" placeholder="handicapping/name_short.csv">
+                    <div class="ui action input">
+                        <input type="text" id="resolve-csv-short" placeholder="Auto-filled after Parse" readonly>
+                        <button class="ui icon button" onclick="browseCsv('short')" tabindex="-1"><i class="folder open icon"></i></button>
+                    </div>
                 </div>
                 <div class="field">
                     <label>Junior CSV</label>
-                    <input type="text" id="resolve-csv-junior" placeholder="handicapping/name_junior.csv">
+                    <div class="ui action input">
+                        <input type="text" id="resolve-csv-junior" placeholder="Auto-filled after Parse" readonly>
+                        <button class="ui icon button" onclick="browseCsv('junior')" tabindex="-1"><i class="folder open icon"></i></button>
+                    </div>
                 </div>
             </div>
             <div class="field" style="margin-top:0.5rem">
@@ -336,25 +350,14 @@ $(function() {
             if (resp.output) appendConsole(resp.output, 'info');
             if (resp.error) appendConsole(resp.error, 'error');
             appendConsole('$ Exit code: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
-            if (resp.exit_code === 0) {
+                if (resp.exit_code === 0) {
                 $btn.closest('.phase-panel').find('.ui.header').append('<i class="green check icon"></i>');
-                // Store CSV path for auto-detect (phase 1 only)
-                if (phase == 1 && resp.output) {
-                    var m = resp.output.match(/Output CSV: (.+)/);
-                    if (m) {
-                        // Convert absolute path to relative from project root
-                        var abs = m[1].trim();
-                        var base = window.location.origin + window.location.pathname.replace(/\/$/, '');
-                        // Store as relative path from project root
-                        var rel = abs.replace(/^.*?\/storage\/app\//, 'storage/app/');
-                        $('#resolve-csv-path').val(rel);
-                        // Also pre-fill parse name if blank
-                        if (!$('#parse-name').val() && m[1]) {
-                            var fname = m[1].split('/').pop().replace('.csv', '');
-                            // keep name as-is
-                        }
-                        appendConsole('$ CSV stored for auto-detect: ' + rel, 'debug');
-                    }
+                // Auto-fill Resolve CSV fields from split results
+                if (phase == 1 && resp.splits && !resp.splits.error) {
+                    var splits = resp.splits;
+                    if (splits.long)   { $('#resolve-csv-long').val(splits.long);   appendConsole('$ Long CSV: '   + splits.long   + ' (' + (splits.counts&&splits.counts.long||'?')   + ' rows)', 'info'); }
+                    if (splits.short)  { $('#resolve-csv-short').val(splits.short);  appendConsole('$ Short CSV: '  + splits.short  + ' (' + (splits.counts&&splits.counts.short||'?')  + ' rows)', 'info'); }
+                    if (splits.junior) { $('#resolve-csv-junior').val(splits.junior); appendConsole('$ Junior CSV: ' + splits.junior + ' (' + (splits.counts&&splits.counts.junior||'?') + ' rows)', 'info'); }
                 }
             }
         }).fail(function(xhr) {
@@ -563,7 +566,32 @@ function selectEvent(id) {
     $('#resolve-event-' + _eventBrowserTarget).val(id);
 }
 
-// ─── Auto-detect ─────────────────────────────────────────────────────────────
+// ─── CSV file browser ────────────────────────────────────────────────────────
+
+function browseCsv(target) {
+    $('#browse-csv-' + target).click();
+}
+
+function handleCsvBrowse(input, target) {
+    if (!input.files[0]) return;
+    // Extract filename and search for it in known locations
+    var filename = input.files[0].name;
+    appendConsole('$ Selected: ' + filename, 'debug');
+    // Try to resolve to full relative path from project root
+    // Check storage/app/handicapping/ and registrations/ dirs
+    $.post('/api/resolve-csv-path', { filename: filename, _token: $('meta[name="csrf-token"]').attr('content') },
+        function(resp) {
+            if (resp.path) {
+                $('#resolve-csv-' + target).val(resp.path);
+                appendConsole('$ CSV set to: ' + resp.path, 'info');
+            } else {
+                appendConsole('$ Could not locate ' + filename + ' — please enter path manually.', 'warn');
+            }
+        }, 'json'
+    ).fail(function() {
+        appendConsole('$ Could not locate ' + filename + ' — please enter path manually.', 'warn');
+    });
+}
 
 function autoDetectResolve() {
     var csvPath = $('#resolve-csv-path').val();
