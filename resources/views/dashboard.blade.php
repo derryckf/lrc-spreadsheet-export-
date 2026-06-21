@@ -156,9 +156,21 @@
                     <option value="interactive">Interactive</option>
                 </select>
             </div>
-            <button class="ui primary button run-btn" data-endpoint="/run/resolve" data-phase="2">
-                <i class="play icon"></i> Resolve Long Course
-            </button>
+            <div style="margin-top:0.75rem; display:flex; gap:0.5rem; align-items:center">
+                <button class="ui primary button resolve-single-btn" data-target="long" data-endpoint="/run/resolve">
+                    <i class="play icon"></i> Resolve Long
+                </button>
+                <button class="ui primary button resolve-single-btn" data-target="short" data-endpoint="/run/resolve">
+                    <i class="play icon"></i> Resolve Short
+                </button>
+                <button class="ui primary button resolve-single-btn" data-target="junior" data-endpoint="/run/resolve">
+                    <i class="play icon"></i> Resolve Junior
+                </button>
+                <div style="flex:1"></div>
+                <button class="ui green button resolve-all-btn" data-endpoint="/run/resolve" data-phase="2">
+                    <i class="step forward icon"></i> Resolve All 3
+                </button>
+            </div>
         </div>
     </div>
 
@@ -312,7 +324,7 @@ $(function() {
     });
     $('.phase-tab').first().trigger('click');
 
-    // Run button handler
+    // Generic run-btn handler (phases 1, 3, 4, 5, 6)
     $('.run-btn').click(function() {
         var endpoint = $(this).data('endpoint');
         var phase = $(this).data('phase');
@@ -320,14 +332,6 @@ $(function() {
         if (result === null) return;
 
         var $btn = $(this);
-        $btn.addClass('loading disabled');
-
-        // Phase 2 returns an array of resolve operations — chain them
-        if (phase == 2 && Array.isArray(result)) {
-            chainResolveOperations(result, $btn);
-            return;
-        }
-
         $btn.addClass('loading disabled');
         appendConsole('$ Running phase ' + phase + '...', 'debug');
 
@@ -350,9 +354,9 @@ $(function() {
             if (resp.output) appendConsole(resp.output, 'info');
             if (resp.error) appendConsole(resp.error, 'error');
             appendConsole('$ Exit code: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
-                if (resp.exit_code === 0) {
+            if (resp.exit_code === 0) {
                 $btn.closest('.phase-panel').find('.ui.header').append('<i class="green check icon"></i>');
-                // Auto-fill Resolve CSV fields from split results
+                // Auto-fill Resolve CSV fields from split results (phase 1)
                 if (phase == 1 && resp.splits && !resp.splits.error) {
                     var splits = resp.splits;
                     if (splits.long)   { $('#resolve-csv-long').val(splits.long);   appendConsole('$ Long CSV: '   + splits.long   + ' (' + (splits.counts&&splits.counts.long||'?')   + ' rows)', 'info'); }
@@ -365,6 +369,52 @@ $(function() {
         }).always(function() {
             $btn.removeClass('loading disabled');
         });
+    });
+
+    // Individual Resolve Long / Short / Junior buttons
+    $('.resolve-single-btn').click(function() {
+        var target = $(this).data('target');
+        var eventId = $('#resolve-event-' + target).val();
+        var csv     = $('#resolve-csv-' + target).val();
+        var mode    = $('#resolve-mode').val();
+        var label   = target.charAt(0).toUpperCase() + target.slice(1);
+
+        if (!eventId || !csv) {
+            appendConsole('$ Fill in event ID and CSV for ' + label + ' first.', 'warn');
+            return;
+        }
+
+        var $btn = $(this);
+        $btn.addClass('loading disabled');
+        appendConsole('$ Resolving ' + label + ' (event ' + eventId + ')...', 'debug');
+
+        $.ajax({
+            url: '/run/resolve',
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            dataType: 'json',
+            data: { event_id: eventId, csv: csv, mode: mode },
+        }).done(function(resp) {
+            if (resp.output) appendConsole(resp.output, 'info');
+            if (resp.error) appendConsole(resp.error, 'error');
+            appendConsole('$ [' + label + '] Exit: ' + resp.exit_code, resp.exit_code === 0 ? 'info' : 'warn');
+        }).fail(function(xhr) {
+            appendConsole('AJAX error: ' + (xhr.responseText || 'unknown'), 'error');
+        }).always(function() {
+            $btn.removeClass('loading disabled');
+        });
+    });
+
+    // Resolve All 3 button
+    $('.resolve-all-btn').click(function() {
+        var ops = collectFormData(2); // returns array of {event_id, csv, mode, label}
+        if (!ops || ops.length === 0) {
+            appendConsole('$ Fill in at least one event ID + CSV pair first.', 'warn');
+            return;
+        }
+        var $btn = $(this);
+        $btn.addClass('loading disabled');
+        chainResolveOperations(ops, $btn);
     });
 });
 
