@@ -824,13 +824,13 @@ function showEventEntries(eventId, label, targetDiv, append) {
                 '</tr></thead><tbody>';
             entries.forEach(function(e) {
                 html += '<tr>' +
-                    '<td>' + escHtml(e.firstName||'') + ' ' + escHtml(e.lastName||'') + '</td>' +
+                    '<td>' + escapeHtml(e.firstName||'') + ' ' + escapeHtml(e.lastName||'') + '</td>' +
                     '<td>' + e.member_id + '</td>' +
-                    '<td>' + escHtml(e.regNo||'') + '</td>' +
-                    '<td>' + escHtml(e.method||'') + '</td>' +
-                    '<td>' + escHtml(e.expectedPace||'') + '</td>' +
-                    '<td>' + escHtml(e.expectedTime||'') + '</td>' +
-                    '<td>' + escHtml(e.handicap||'') + '</td>' +
+                    '<td>' + escapeHtml(e.regNo||'') + '</td>' +
+                    '<td>' + escapeHtml(e.method||'') + '</td>' +
+                    '<td>' + escapeHtml(e.expectedPace||'') + '</td>' +
+                    '<td>' + escapeHtml(e.expectedTime||'') + '</td>' +
+                    '<td>' + escapeHtml(e.handicap||'') + '</td>' +
                     '<td>' + (e.daysSince != null ? e.daysSince : '—') + '</td>' +
                     '<td>' + (e.lastWin != null ? e.lastWin : '—') + '</td>' +
                     '</tr>';
